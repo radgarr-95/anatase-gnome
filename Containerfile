@@ -11,17 +11,6 @@ gpgkey=https://download.copr.fedorainfracloud.org/results/scottames/ghostty/pubk
 repo_gpgcheck=0\n\
 enabled=1\n' > /etc/yum.repos.d/scottames-ghostty.repo
 
-# Add CoolerControl Copr repo manually
-RUN printf '[copr-codifryed-CoolerControl]\n\
-name=Copr repo for CoolerControl\n\
-baseurl=https://download.copr.fedorainfracloud.org/results/codifryed/CoolerControl/fedora-45-$basearch/\n\
-type=rpm-md\n\
-skip_if_unavailable=1\n\
-gpgcheck=1\n\
-gpgkey=https://download.copr.fedorainfracloud.org/results/codifryed/CoolerControl/pubkey.gpg\n\
-repo_gpgcheck=0\n\
-enabled=1\n' > /etc/yum.repos.d/codifryed-CoolerControl.repo
-
 # Fedora 45 GNOME desktop packages with validated available packages
 RUN dnf -y --setopt=install_weak_deps=False install \
     dconf \
@@ -39,7 +28,6 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     git \
     gcc \
     liquidctl \
-    coolercontrol \
     fprintd-pam \
     gnome-bluetooth \
     oo7-daemon \
@@ -82,9 +70,8 @@ RUN dnf -y --setopt=install_weak_deps=False install \
 # Set Fish as the default shell globally for new users
 RUN chsh -s /usr/bin/fish
 
-# Provide a graphical login, enable the CoolerControl daemon, and set graphical target
+# Provide a graphical login and set graphical target.
 RUN systemctl enable gdm.service && \
-    systemctl enable coolercontrold.service && \
     systemctl set-default graphical.target
 
 # Cleanup (leave this here).
