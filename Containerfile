@@ -84,7 +84,7 @@ RUN chsh -s /usr/bin/fish
 
 # Provide a graphical login, enable the CoolerControl daemon, and set graphical target.
 RUN systemctl enable gdm.service && \
-    systemctl enable coolercontrold.service && \
+    systemctl enable coolercontrol.service && \
     systemctl set-default graphical.target
 
 # Cleanup (leave this here).
