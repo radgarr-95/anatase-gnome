@@ -24,7 +24,7 @@ on:
 env:
   # Customize the image name
   # It will be published at ghcr.io/<your-github-username>/IMAGE_NAME:latest
-  IMAGE_NAME: my-anatase
+  IMAGE_NAME: anatase-gnome
 
 permissions:
   contents: read
