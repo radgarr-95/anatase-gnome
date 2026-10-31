@@ -1,5 +1,7 @@
 ![Tux beside a yellow oven baking cookies](./res/oven.png)
 
+hi i love anatase os and this is my attempt to create a wersion of it with my favourite desktop and a few usefull extra apps nothing crazy be gentel this is my first time using github
+
 # Custom Image Template
 
 Make your own custom Anatase image! Anatase is designed to be lean and unopinionated, while not needing extension for normal use. But you might want to mess with the image to add your own tools, or toy around.
