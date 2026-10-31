@@ -11,7 +11,32 @@ gpgkey=https://download.copr.fedorainfracloud.org/results/scottames/ghostty/pubk
 repo_gpgcheck=0\n\
 enabled=1\n' > /etc/yum.repos.d/scottames-ghostty.repo
 
-# Fedora 45 GNOME desktop packages with validated available packages
+# Add CoolerControl Copr repo manually
+RUN printf '[copr-codifryed-coolercontrol]\n\
+name=Copr repo for coolercontrol\n\
+baseurl=https://download.copr.fedorainfracloud.org/results/codifryed/coolercontrol/fedora-45-$basearch/\n\
+type=rpm-md\n\
+skip_if_unavailable=1\n\
+gpgcheck=1\n\
+gpgkey=https://download.copr.fedorainfracloud.org/results/codifryed/coolercontrol/pubkey.gpg\n\
+repo_gpgcheck=0\n\
+enabled=1\n' > /etc/yum.repos.d/codifryed-coolercontrol.repo
+
+# Add Zen Browser Copr repo manually
+RUN printf '[copr-zen-browser]\n\
+name=Copr repo for zen browser\n\
+baseurl=https://download.copr.fedorainfracloud.org/results/rmnscnc/zen-browser/fedora-45-$basearch/\n\
+type=rpm-md\n\
+skip_if_unavailable=1\n\
+gpgcheck=1\n\
+gpgkey=https://download.copr.fedorainfracloud.org/results/rmnscnc/zen-browser/pubkey.gpg\n\
+repo_gpgcheck=0\n\
+enabled=1\n' > /etc/yum.repos.d/zen-browser.repo
+
+# Add Terra repository for Mission Center
+RUN curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo -o /etc/yum.repos.d/terra.repo
+
+# Fedora 45 GNOME desktop packages with all custom tools, themes, and apps
 RUN dnf -y --setopt=install_weak_deps=False install \
     dconf \
     gdm \
@@ -65,6 +90,11 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gnome-shell-extension-caffeine \
     gnome-shell-extension-gsconnect \
     gnome-shell-extension-logo-menu \
+    adw-gtk3-theme \
+    coolercontrol \
+    mission-center \
+    zen-browser \
+    heroic-games-launcher \
     && dnf clean all
 
 # Set Fish as the default shell globally for new users
