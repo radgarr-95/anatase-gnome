@@ -1,7 +1,7 @@
 ![Tux beside a yellow oven baking cookies](./res/oven.png)
 
-hi i love anatase os and this is my attempt to create a version of it with my favourite desktop and a few usefull extra apps nothing crazy be gentel this is my first time using github
-as for additions i added zen browser for those who dislike the very idea of chromium , coolercontrol for those on desktop and or using an aio , brew for installing more cli tools, fish because it ts my favourite shell bazar because gnome software is not great ghostty because its my favorite terminal emulator and mission center for system monitoring enjoy
+hi i love anatase os and this is my attempt to create a version of it with my favorite desktop and a few usefull extra apps nothing crazy be gentel this is my first time using github
+as for additions i added zen browser for those who dislike the very idea of chromium , coolercontrol for those on desktop and or using an aio , brew for installing more cli tools, fish because it ts my favourite shell ,bazar because gnome software is not great ,ghostty because its my favorite terminal emulator and mission center for system monitoring .I also added some very usefull gnome extensions but nothing is preconfigured customize by youreself and enjoy. If you like gnome and wish to help feel free to report bugs and contribute and also contact me im open to sugestions 
 
 # Custom Image Template
 
