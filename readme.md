@@ -1,6 +1,6 @@
 ![Tux beside a yellow oven baking cookies](./res/oven.png)
 
-hi i love anatase os and this is my attempt to create a wersion of it with my favourite desktop and a few usefull extra apps nothing crazy be gentel this is my first time using github
+hi i love anatase os and this is my attempt to create a version of it with my favourite desktop and a few usefull extra apps nothing crazy be gentel this is my first time using github
 
 # Custom Image Template
 
