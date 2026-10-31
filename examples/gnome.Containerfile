@@ -1,7 +1,11 @@
 FROM i.anatase.org/base:stable
 
-# Fedora 45 GNOME desktop packages, slimmed down
-# https://forge.fedoraproject.org/releng/fedora-comps/src/branch/main/comps-f45.xml.in
+# Enable necessary COPR repositories for Ghostty and CoolerControl
+RUN dnf -y install dnf-plugins-core && \
+    dnf -y copr enable scottames/ghostty && \
+    dnf -y copr enable codifryed/CoolerControl
+
+# Fedora 45 GNOME desktop packages with custom apps, hardware tools, fish shell, and full extension set
 RUN dnf -y --setopt=install_weak_deps=False install \
     dconf \
     gdm \
@@ -10,9 +14,15 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gnome-session-wayland-session \
     gnome-settings-daemon \
     gnome-shell \
-    gnome-software \
     nautilus \
-    ptyxis \
+    ghostty \
+    fish \
+    procps-ng \
+    curl \
+    git \
+    gcc \
+    liquidctl \
+    coolercontrol \
     fprintd-pam \
     gnome-bluetooth \
     oo7-daemon \
@@ -44,13 +54,26 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gnome-disk-utility \
     gnome-epub-thumbnailer \
     gnome-logs \
-    gnome-system-monitor \
-    gnome-user-docs \
-    gst-thumbnailers \
+    mission-center \
+    gnome-shell-extension-blur-my-shell \
+    gnome-shell-extension-burn-my-windows \
+    gnome-shell-extension-o-tiling \
+    gnome-shell-extension-user-theme \
+    gnome-shell-extension-wallpaper-slideshow \
+    gnome-shell-extension-appindicator \
+    gnome-shell-extension-caffeine \
+    gnome-shell-extension-gsconnect \
+    gnome-shell-extension-logo-menu \
+    gnome-shell-extension-add-to-steam \
+    bazaar-companion \
     && dnf clean all
 
-# Provide a graphical login, including GNOME's setup flow on fresh installs.
+# Set Fish as the default shell globally for new users
+RUN chsh -s /usr/bin/fish
+
+# Provide a graphical login, enable the CoolerControl daemon, and set graphical target.
 RUN systemctl enable gdm.service && \
+    systemctl enable coolercontrold.service && \
     systemctl set-default graphical.target
 
 # Cleanup (leave this here).
