@@ -1,9 +1,26 @@
 FROM i.anatase.org/base:stable
 
-# Enable necessary COPR repositories for Ghostty and CoolerControl
-RUN dnf -y install dnf-plugins-core && \
-    dnf -y copr enable scottames/ghostty && \
-    dnf -y copr enable codifryed/CoolerControl
+# Add Ghostty Copr repo manually
+RUN printf '[copr-scottames-ghostty]\n\
+name=Copr repo for ghostty\n\
+baseurl=https://download.copr.fedorainfracloud.org/results/scottames/ghostty/fedora-45-$basearch/\n\
+type=rpm-md\n\
+skip_if_unavailable=1\n\
+gpgcheck=1\n\
+gpgkey=https://download.copr.fedorainfracloud.org/results/scottames/ghostty/pubkey.gpg\n\
+repo_gpgcheck=0\n\
+enabled=1\n' > /etc/yum.repos.d/scottames-ghostty.repo
+
+# Add CoolerControl Copr repo manually
+RUN printf '[copr-codifryed-CoolerControl]\n\
+name=Copr repo for CoolerControl\n\
+baseurl=https://download.copr.fedorainfracloud.org/results/codifryed/CoolerControl/fedora-45-$basearch/\n\
+type=rpm-md\n\
+skip_if_unavailable=1\n\
+gpgcheck=1\n\
+gpgkey=https://download.copr.fedorainfracloud.org/results/codifryed/CoolerControl/pubkey.gpg\n\
+repo_gpgcheck=0\n\
+enabled=1\n' > /etc/yum.repos.d/codifryed-CoolerControl.repo
 
 # Fedora 45 GNOME desktop packages with custom apps, hardware tools, fish shell, and full extension set
 RUN dnf -y --setopt=install_weak_deps=False install \
