@@ -22,7 +22,7 @@ gpgkey=https://download.copr.fedorainfracloud.org/results/codifryed/CoolerContro
 repo_gpgcheck=0\n\
 enabled=1\n' > /etc/yum.repos.d/codifryed-CoolerControl.repo
 
-# Fedora 45 GNOME desktop packages with custom apps, hardware tools, fish shell, and full extension set
+# Fedora 45 GNOME desktop packages with validated available packages
 RUN dnf -y --setopt=install_weak_deps=False install \
     dconf \
     gdm \
@@ -71,18 +71,12 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gnome-disk-utility \
     gnome-epub-thumbnailer \
     gnome-logs \
-    mission-center \
     gnome-shell-extension-blur-my-shell \
-    gnome-shell-extension-burn-my-windows \
-    gnome-shell-extension-o-tiling \
     gnome-shell-extension-user-theme \
-    gnome-shell-extension-wallpaper-slideshow \
     gnome-shell-extension-appindicator \
     gnome-shell-extension-caffeine \
     gnome-shell-extension-gsconnect \
     gnome-shell-extension-logo-menu \
-    gnome-shell-extension-add-to-steam \
-    bazaar-companion \
     && dnf clean all
 
 # Set Fish as the default shell globally for new users
