@@ -2,15 +2,6 @@ name: Build Custom Image
 
 on:
   # Enable below to run on a schedule
-  # For example, on Monday Wednesday and Friday at 07:00 UTC
-  # Right before you brew your morning coffee
-  #
-  # Remember:
-  # - Github Actions will stop working after 60 days without repo activity
-  # - The action might not Github Actions is overloaded or be delayed
-  # - Consider the environment and resources you use when you build
-  #   the image unnecessarily.
-  #
   # schedule:
   #   - cron: '00 07 * * 1,3,5' # Monday, Wednesday, Friday at 07:00 UTC
   
@@ -46,7 +37,6 @@ jobs:
         run: echo "$GHCR_TOKEN" | podman login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
       # Rebuild when the base version or repository commit changes
-      # Remember the environment if you decide to remove this block
       - name: Fetch image versions
         run: |
           base_image=$(grep -im1 '^[[:space:]]*FROM[[:space:]]' Containerfile | awk '{print $2}')
@@ -55,7 +45,8 @@ jobs:
           version=$(skopeo inspect --no-tags "docker://$base_image" | \
             jq -er '.Labels["org.opencontainers.image.version"] | select(type == "string" and length > 0)')
 
-          published_image=$(skopeo inspect --no-tags "docker://$image" || echo '{}')
+          # Gracefully handle first-time builds where the image doesn't exist yet
+          published_image=$(skopeo inspect --no-tags "docker://$image" 2>/dev/null || echo '{}')
           published_version=$(jq -r '.Labels["org.anatase.version"] // ""' <<< "$published_image")
           published_commit=$(jq -r '.Labels["org.opencontainers.image.revision"] // ""' <<< "$published_image")
 
