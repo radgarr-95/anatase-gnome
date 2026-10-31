@@ -36,7 +36,7 @@ enabled=1\n' > /etc/yum.repos.d/zen-browser.repo
 # Add Terra repository for Mission Center
 RUN curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo -o /etc/yum.repos.d/terra.repo
 
-# Fedora 45 GNOME desktop packages with all custom tools, themes, and apps
+# Fedora 45 GNOME desktop packages, apps, and Homebrew prerequisites (gcc, make, file, etc.)
 RUN dnf -y --setopt=install_weak_deps=False install \
     dconf \
     gdm \
@@ -52,6 +52,10 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     curl \
     git \
     gcc \
+    make \
+    file \
+    bzip2 \
+    unzip \
     liquidctl \
     fprintd-pam \
     gnome-bluetooth \
@@ -96,6 +100,15 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     zen-browser \
     heroic-games-launcher \
     && dnf clean all
+
+# Install Homebrew using a temporary non-root user (required by Homebrew)
+RUN useradd -m -s /bin/bash linuxbrew
+USER linuxbrew
+RUN NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+USER root
+
+# Expose Homebrew globally in the system PATH
+ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
 
 # Set Fish as the default shell globally for new users
 RUN chsh -s /usr/bin/fish
