@@ -128,9 +128,6 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     mission-center \
     zen-browser \
     heroic-games-launcher \
-    # Steam gaming
-    steam \
-    steam-devices \
     # Hanabi build dependencies
     meson \
     ninja-build \
