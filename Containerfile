@@ -219,4 +219,4 @@ RUN flatpak install --system --assumeyes flathub \
     io.github.kolunmi.Bazaar \
     com.github.tchx84.Flatseal \
     io.github.flattool.Warehouse \
-    io.github.danieloue.Rewaita
+    io.github.swordpuffin.rewaita \
