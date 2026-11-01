@@ -4,11 +4,10 @@ FROM i.anatase.org/base:stable
 # ============================================================
 # REPOSITORIES
 # ============================================================
-
 # Add Ghostty Copr repo manually
 RUN printf '[copr-scottames-ghostty]\n\
 name=Copr repo for ghostty\n\
-baseurl=https://download.copr.fedorainfracloud.org/results/scottames/ghostty/fedora-45-$basearch/\n\
+baseurl=https://download.copr.fedorainfracloud.org/results/scottames/ghostty/fedora-45-x86_64/\n\
 type=rpm-md\n\
 skip_if_unavailable=1\n\
 gpgcheck=1\n\
@@ -19,7 +18,7 @@ enabled=1\n' > /etc/yum.repos.d/scottames-ghostty.repo
 # Add CoolerControl Copr repo manually
 RUN printf '[copr-codifryed-coolercontrol]\n\
 name=Copr repo for coolercontrol\n\
-baseurl=https://download.copr.fedorainfracloud.org/results/codifryed/coolercontrol/fedora-45-$basearch/\n\
+baseurl=https://download.copr.fedorainfracloud.org/results/codifryed/coolercontrol/fedora-45-x86_64/\n\
 type=rpm-md\n\
 skip_if_unavailable=1\n\
 gpgcheck=1\n\
@@ -30,7 +29,7 @@ enabled=1\n' > /etc/yum.repos.d/codifryed-coolercontrol.repo
 # Add Zen Browser Copr repo manually
 RUN printf '[copr-zen-browser]\n\
 name=Copr repo for zen browser\n\
-baseurl=https://download.copr.fedorainfracloud.org/results/rmnscnc/zen-browser/fedora-45-$basearch/\n\
+baseurl=https://download.copr.fedorainfracloud.org/results/rmnscnc/zen-browser/fedora-45-x86_64/\n\
 type=rpm-md\n\
 skip_if_unavailable=1\n\
 gpgcheck=1\n\
