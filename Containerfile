@@ -1,3 +1,4 @@
+
 FROM i.anatase.org/base:stable
 
 # ============================================================
@@ -26,14 +27,14 @@ gpgkey=https://download.copr.fedorainfracloud.org/results/codifryed/coolercontro
 repo_gpgcheck=0\n\
 enabled=1\n' > /etc/yum.repos.d/codifryed-coolercontrol.repo
 
-# Add Zen Browser Copr repo manually (Corrected to sneexy)
+# Add Zen Browser Copr repo manually
 RUN printf '[copr-zen-browser]\n\
 name=Copr repo for zen browser\n\
-baseurl=https://download.copr.fedorainfracloud.org/results/sneexy/zen-browser/fedora-45-$basearch/\n\
+baseurl=https://download.copr.fedorainfracloud.org/results/rmnscnc/zen-browser/fedora-45-$basearch/\n\
 type=rpm-md\n\
 skip_if_unavailable=1\n\
 gpgcheck=1\n\
-gpgkey=https://download.copr.fedorainfracloud.org/results/sneexy/zen-browser/pubkey.gpg\n\
+gpgkey=https://download.copr.fedorainfracloud.org/results/rmnscnc/zen-browser/pubkey.gpg\n\
 repo_gpgcheck=0\n\
 enabled=1\n' > /etc/yum.repos.d/zen-browser.repo
 
@@ -47,7 +48,7 @@ RUN dnf -y install \
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
 # ============================================================
-# SYSTEM PACKAGES (Includes build dependencies to prevent transaction errors)
+# SYSTEM PACKAGES
 # ============================================================
 
 RUN dnf -y --setopt=install_weak_deps=False install \
@@ -128,7 +129,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     # Steam gaming
     steam \
     steam-devices \
-    # Hanabi build dependencies (kept to avoid transaction failures)
+    # Hanabi build dependencies
     meson \
     ninja-build \
     nodejs \
@@ -141,13 +142,18 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gstreamer1-plugin-libav \
     && dnf clean all
 
+
 # ============================================================
-# HANABI GNOME LIVE WALLPAPER EXTENSION (No removal step)
+# HANABI GNOME LIVE WALLPAPER EXTENSION
 # ============================================================
 
+# Build Hanabi in an isolated temporary HOME directory.
+# This avoids npm attempting to write to /root/.npm.
+# Install system-wide instead of into a temporary user account.
+
 RUN git clone --depth 1 \
-        https://github.com/jeffshee/gnome-ext-hanabi.git \
-        /tmp/hanabi && \
+    https://github.com/jeffshee/gnome-ext-hanabi.git \
+    /tmp/hanabi && \
     mkdir -p /tmp/hanabi-home /tmp/hanabi-npm-cache && \
     HOME=/tmp/hanabi-home \
     npm_config_cache=/tmp/hanabi-npm-cache \
@@ -163,7 +169,7 @@ RUN git clone --depth 1 \
 # HOMEBREW
 # ============================================================
 
-USER root
+# Install Homebrew using a temporary non-root user
 RUN useradd -m -s /bin/bash linuxbrew
 
 USER linuxbrew
@@ -173,38 +179,44 @@ RUN NONINTERACTIVE=1 /bin/bash -c \
 
 USER root
 
+# Expose Homebrew globally in the system PATH
 ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
 
 # ============================================================
 # DEFAULT SHELL
 # ============================================================
 
+# Set Fish as the default shell globally for new users
 RUN chsh -s /usr/bin/fish
 
 # ============================================================
 # DISPLAY MANAGER AND BOOT
 # ============================================================
 
+# GNOME remains the default desktop.
+# Phosh is available as an additional GDM session.
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
 
 # ============================================================
-# CLEANUP (SAFE CACHE CLEARING)
+# CLEANUP (LEAVE THIS HERE)
 # ============================================================
 
-RUN dnf clean all && \
-    rm -rf /var/cache/dnf/* /tmp/* /var/tmp/*
+RUN rm -rf /var && \
+    mkdir -p /var/tmp 
 
 # ============================================================
 # FLATPAK APPLICATIONS
 # ============================================================
 
+# Add Flathub system-wide
 RUN flatpak remote-add --system --if-not-exists \
     flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
+# Install applications system-wide
 RUN flatpak install --system --assumeyes flathub \
     com.mattjakeman.ExtensionManager \
     io.github.kolunmi.Bazaar \
     com.github.tchx84.Flatseal \
     io.github.flattool.Warehouse \
-    io.github.swordpuffin.rewaita
+    io.github.swordpuffin.rewaita \
