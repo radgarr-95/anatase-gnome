@@ -47,7 +47,7 @@ RUN dnf -y install \
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
 # ============================================================
-# SYSTEM PACKAGES (Build dependencies removed from here)
+# SYSTEM PACKAGES (Includes build dependencies to prevent transaction errors)
 # ============================================================
 
 RUN dnf -y --setopt=install_weak_deps=False install \
@@ -128,6 +128,11 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     # Steam gaming
     steam \
     steam-devices \
+    # Hanabi build dependencies (kept to avoid transaction failures)
+    meson \
+    ninja-build \
+    nodejs \
+    npm \
     # Video playback support
     gstreamer1-plugin-gtk4 \
     gstreamer1-plugins-base \
@@ -137,11 +142,10 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     && dnf clean all
 
 # ============================================================
-# HANABI GNOME LIVE WALLPAPER EXTENSION (Built and cleaned)
+# HANABI GNOME LIVE WALLPAPER EXTENSION (No removal step)
 # ============================================================
 
-RUN dnf -y --setopt=install_weak_deps=False install meson ninja-build nodejs npm && \
-    git clone --depth 1 \
+RUN git clone --depth 1 \
         https://github.com/jeffshee/gnome-ext-hanabi.git \
         /tmp/hanabi && \
     mkdir -p /tmp/hanabi-home /tmp/hanabi-npm-cache && \
@@ -153,9 +157,7 @@ RUN dnf -y --setopt=install_weak_deps=False install meson ninja-build nodejs npm
     cp -a \
         /tmp/hanabi-home/.local/share/gnome-shell/extensions/hanabi-extension@jeffshee.github.io \
         /usr/share/gnome-shell/extensions/ && \
-    dnf -y remove meson ninja-build nodejs npm && \
-    dnf clean all && \
-    rm -rf /tmp/hanabi /tmp/hanabi-home /tmp/hanabi-npm-cache /var/cache/dnf/*
+    rm -rf /tmp/hanabi /tmp/hanabi-home /tmp/hanabi-npm-cache
 
 # ============================================================
 # HOMEBREW
