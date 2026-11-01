@@ -1,4 +1,9 @@
+
 FROM i.anatase.org/base:stable
+
+# ============================================================
+# REPOSITORIES
+# ============================================================
 
 # Add Ghostty Copr repo manually
 RUN printf '[copr-scottames-ghostty]\n\
@@ -34,10 +39,20 @@ repo_gpgcheck=0\n\
 enabled=1\n' > /etc/yum.repos.d/zen-browser.repo
 
 # Add Terra repository for Mission Center
-RUN curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo -o /etc/yum.repos.d/terra.repo
+RUN curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo \
+    -o /etc/yum.repos.d/terra.repo
 
-# Fedora 45 GNOME desktop packages, apps, and Homebrew prerequisites (gcc, make, file, etc.)
+# Enable RPM Fusion repositories for Steam
+RUN dnf -y install \
+    https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+    https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+
+# ============================================================
+# SYSTEM PACKAGES
+# ============================================================
+
 RUN dnf -y --setopt=install_weak_deps=False install \
+    # GNOME desktop
     dconf \
     gdm \
     gnome-control-center \
@@ -46,8 +61,10 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gnome-settings-daemon \
     gnome-shell \
     nautilus \
+    # Terminal and shell
     ghostty \
     fish \
+    # System utilities
     procps-ng \
     curl \
     git \
@@ -56,19 +73,23 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     file \
     bzip2 \
     unzip \
+    # Hardware and device support
     liquidctl \
     fprintd-pam \
     gnome-bluetooth \
+    # Authentication and portals
     oo7-daemon \
     oo7-portal \
     pam_oo7 \
     gnome-user-share \
+    # GVFS support
     gvfs-afc \
     gvfs-fuse \
     gvfs-goa \
     gvfs-gphoto2 \
     gvfs-mtp \
     gvfs-smb \
+    # GNOME integration
     localsearch \
     NetworkManager-libreswan-gnome \
     NetworkManager-openconnect-gnome \
@@ -88,6 +109,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gnome-disk-utility \
     gnome-epub-thumbnailer \
     gnome-logs \
+    # GNOME extensions and themes
     gnome-shell-extension-blur-my-shell \
     gnome-shell-extension-user-theme \
     gnome-shell-extension-appindicator \
@@ -95,28 +117,82 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gnome-shell-extension-gsconnect \
     gnome-shell-extension-logo-menu \
     adw-gtk3-theme \
+    # Phosh mobile desktop
+    phosh \
+    phoc \
+    phosh-mobile-settings \
+    # Additional applications
     coolercontrol \
     mission-center \
     zen-browser \
     heroic-games-launcher \
+    # Steam gaming
+    steam \
+    steam-devices \
+    # Hanabi build dependencies
+    meson \
+    ninja-build \
+    nodejs \
+    npm \
+    # Video playback support
+    gstreamer1-plugin-gtk4 \
+    gstreamer1-plugins-base \
+    gstreamer1-plugins-good \
+    gstreamer1-plugins-bad-free \
+    gstreamer1-plugin-libav \
     && dnf clean all
 
-# Install Homebrew using a temporary non-root user (required by Homebrew)
+# ============================================================
+# HANABI GNOME LIVE WALLPAPER EXTENSION
+# ============================================================
+
+# Build and install Hanabi from source
+RUN git clone --depth 1 \
+    https://github.com/jeffshee/gnome-ext-hanabi.git \
+    /tmp/hanabi && \
+    cd /tmp/hanabi && \
+    npm ci --no-audit --no-fund && \
+    npm run build && \
+    meson setup .build --prefix=/usr && \
+    ninja -C .build install && \
+    rm -rf /tmp/hanabi
+
+# ============================================================
+# HOMEBREW
+# ============================================================
+
+# Install Homebrew using a temporary non-root user
 RUN useradd -m -s /bin/bash linuxbrew
+
 USER linuxbrew
-RUN NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+RUN NONINTERACTIVE=1 /bin/bash -c \
+    "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
 USER root
 
 # Expose Homebrew globally in the system PATH
 ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
 
+# ============================================================
+# DEFAULT SHELL
+# ============================================================
+
 # Set Fish as the default shell globally for new users
 RUN chsh -s /usr/bin/fish
 
-# Provide a graphical login and set graphical target.
+# ============================================================
+# DISPLAY MANAGER AND BOOT
+# ============================================================
+
+# GNOME remains the default desktop.
+# Phosh is available as an additional GDM session.
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
 
-# Cleanup (leave this here).
+# ============================================================
+# CLEANUP (LEAVE THIS HERE)
+# ============================================================
+
 RUN rm -rf /var && \
     mkdir -p /var/tmp
