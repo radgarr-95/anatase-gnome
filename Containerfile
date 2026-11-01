@@ -205,23 +205,3 @@ RUN systemctl enable gdm.service && \
 RUN rm -rf /var && \
     mkdir -p /var/tmp 
 
-# ============================================================
-# FLATHUB APPLICATIONS
-# ============================================================
-
-RUN flatpak remote-add --system --if-not-exists flathub \
-    https://dl.flathub.org/repo/flathub.flatpakrepo && \
-    flatpak install --system --noninteractive -y flathub \
-    com.mattjakeman.ExtensionManager \
-    com.github.tchx84.Flatseal \
-    io.github.flattool.Warehouse \
-    com.vysp3r.ProtonPlus \
-    io.github.swordpuffin.rewaita \
-    io.github.kolunmi.Bazaar && \
-    flatpak override --system \
-    --filesystem=xdg-config/gtk-3.0:rw \
-    io.github.swordpuffin.rewaita && \
-    flatpak override --system \
-    --filesystem=xdg-config/gtk-4.0:rw \
-    io.github.swordpuffin.rewaita
-
