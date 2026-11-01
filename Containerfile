@@ -116,8 +116,6 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gnome-shell-extension-caffeine \
     gnome-shell-extension-gsconnect \
     gnome-shell-extension-logo-menu \
-    gnome-shell-extension-burn-my-windows \
-    gnome-shell-extension-o-tiling \
     adw-gtk3-theme \
     # Phosh mobile desktop
     phosh \
