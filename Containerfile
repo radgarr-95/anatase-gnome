@@ -205,3 +205,18 @@ RUN systemctl enable gdm.service && \
 RUN rm -rf /var && \
     mkdir -p /var/tmp 
 
+# ============================================================
+# FLATPAK APPLICATIONS
+# ============================================================
+
+# Add Flathub system-wide
+RUN flatpak remote-add --system --if-not-exists \
+    flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+# Install applications system-wide
+RUN flatpak install --system --assumeyes flathub \
+    com.mattjakeman.ExtensionManager \
+    io.github.kolunmi.Bazaar \
+    com.github.tchx84.Flatseal \
+    io.github.flattool.Warehouse \
+    io.github.danieloue.Rewaita
