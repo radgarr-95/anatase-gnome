@@ -140,7 +140,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gstreamer1-plugins-good \
     gstreamer1-plugins-bad-free \
     gstreamer1-plugin-libav \
-    && dnf clean all# 
+    && dnf clean all
 
 
 # ============================================================
