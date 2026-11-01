@@ -146,16 +146,23 @@ RUN dnf -y --setopt=install_weak_deps=False install \
 # HANABI GNOME LIVE WALLPAPER EXTENSION
 # ============================================================
 
-# Build and install Hanabi from source
+# Build Hanabi in an isolated temporary HOME directory.
+# This avoids npm attempting to write to /root/.npm.
+# Install system-wide instead of into a temporary user account.
+
 RUN git clone --depth 1 \
     https://github.com/jeffshee/gnome-ext-hanabi.git \
     /tmp/hanabi && \
-    cd /tmp/hanabi && \
-    npm ci --no-audit --no-fund && \
-    npm run build && \
-    meson setup .build --prefix=/usr && \
-    ninja -C .build install && \
-    rm -rf /tmp/hanabi
+    mkdir -p /tmp/hanabi-home /tmp/hanabi-npm-cache && \
+    HOME=/tmp/hanabi-home \
+    npm_config_cache=/tmp/hanabi-npm-cache \
+    make -C /tmp/hanabi install && \
+    install -d /usr/share/gnome-shell/extensions && \
+    test -d /tmp/hanabi-home/.local/share/gnome-shell/extensions/hanabi-extension@jeffshee.github.io && \
+    cp -a \
+        /tmp/hanabi-home/.local/share/gnome-shell/extensions/hanabi-extension@jeffshee.github.io \
+        /usr/share/gnome-shell/extensions/ && \
+    rm -rf /tmp/hanabi /tmp/hanabi-home /tmp/hanabi-npm-cache
 
 # ============================================================
 # HOMEBREW
