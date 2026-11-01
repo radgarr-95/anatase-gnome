@@ -142,13 +142,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gstreamer1-plugin-libav \
     && dnf clean all
 
-# ============================================================
-# PUNKTFUNK SYSEXT
-# ============================================================
 
-RUN curl -fsSLO https://git.unom.io/unom/punktfunk/raw/branch/main/packaging/bazzite/punktfunk-sysext.sh && \
-    bash punktfunk-sysext.sh install && \
-    rm -f punktfunk-sysext.sh
 
 # ============================================================
 # HANABI GNOME LIVE WALLPAPER EXTENSION
