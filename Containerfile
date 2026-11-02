@@ -114,15 +114,23 @@ RUN dnf -y --setopt=install_weak_deps=False install \
 RUN useradd -m -s /bin/bash linuxbrew
 
 USER linuxbrew
-ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
+ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/home/linuxbrew/bin:${PATH}"
 
-# 1. Install official Homebrew non-interactively (bypasses sudo prompts)
+# Create a mock 'sudo' in user space so installer scripts don't crash on sudo checks
+RUN mkdir -p /home/linuxbrew/bin && \
+    printf '#!/bin/bash\n"$@"\n' > /home/linuxbrew/bin/sudo && \
+    chmod +x /home/linuxbrew/bin/sudo
+
+# 1. Install official Homebrew non-interactively
 RUN NONINTERACTIVE=1 /bin/bash -c \
     "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# 2. Install Bold Brew, Neovim, and your requested CLI utilities via standard brew
+# 2. Install Bold Brew using its official installer script
+RUN NONINTERACTIVE=1 /bin/bash -c \
+    "$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)"
+
+# 3. Install Neovim and requested CLI utilities via standard brew
 RUN brew install \
-    Valkyrie00/tap/bold-brew \
     neovim \
     oh-my-posh \
     eza \
@@ -132,7 +140,7 @@ RUN brew install \
     yazi \
     uv
 
-# 3. Clone LazyVim starter template directly into Homebrew's config path
+# 4. Clone LazyVim starter template directly into Homebrew's config path
 RUN mkdir -p ~/.config && \
     git clone https://github.com/LazyVim/starter ~/.config/nvim && \
     rm -rf ~/.config/nvim/.git
