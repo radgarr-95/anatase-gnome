@@ -106,7 +106,6 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gstreamer1-plugin-libav \
     && dnf clean all
 
-
 # ============================================================
 # NEOVIM & LAZYVIM SETUP (Non-Root User)
 # ============================================================
@@ -114,12 +113,16 @@ RUN dnf -y --setopt=install_weak_deps=False install \
 # 1. Create a dedicated non-root developer user
 RUN useradd -m -s /bin/bash developer
 
-# 2. Clone LazyVim starter template into the developer's home directory safely using runuser
-RUN runuser -u developer -- mkdir -p /home/developer/.config && \
-    runuser -u developer -- git clone https://github.com/LazyVim/starter /home/developer/.config/nvim && \
-    runuser -u developer -- rm -rf /home/developer/.config/nvim/.git
+# 2. Switch to developer user to create config and clone LazyVim safely
+USER developer
+RUN mkdir -p /home/developer/.config && \
+    git clone https://github.com/LazyVim/starter /home/developer/.config/nvim && \
+    rm -rf /home/developer/.config/nvim/.git
 
-# 3. Create a desktop entry for Neovim (launching via Ghostty)
+# 3. Switch back to root for system-level configurations
+USER root
+
+# 4. Create a desktop entry for Neovim (launching via Ghostty)
 RUN mkdir -p /usr/share/applications && \
     cat << 'EOF' > /usr/share/applications/nvim.desktop
 [Desktop Entry]
