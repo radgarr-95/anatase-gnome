@@ -1,20 +1,24 @@
 FROM i.anatase.org/base:stable
 
+# NOTE: every generated file below uses  printf '%s\n' 'line' 'line' > file
+# Each line is its own single-quoted argument, so $, \, " and % stay literal.
+# Lines that need a single quote use a double-quoted argument instead.
+
 # ============================================================
 # REPOSITORIES
 # ============================================================
 
-# Add Terra repository (provides Ghostty, CoolerControl, Zen Browser, Mission Center, etc.)
+# Terra (Ghostty, CoolerControl, Zen Browser, Mission Center, etc.)
 RUN curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo \
     -o /etc/yum.repos.d/terra.repo
 
-# Enable RPM Fusion repositories for Steam/VLC
+# RPM Fusion (Steam/VLC)
 RUN dnf -y install \
     https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
 # ============================================================
-# SYSTEM PACKAGES (INCLUDING NATIVE APPS & WGET)
+# SYSTEM PACKAGES
 # ============================================================
 
 RUN dnf -y --setopt=install_weak_deps=False install \
@@ -32,7 +36,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     # Terminal and shell
     ghostty \
     fish \
-    # CLI Utilities
+    # CLI utilities
     neovim \
     oh-my-posh \
     eza \
@@ -50,6 +54,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     file \
     bzip2 \
     unzip \
+    glib2-devel \
     # Media Writer
     mediawriter \
     # Hardware and device support
@@ -100,7 +105,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     phosh \
     phoc \
     phosh-mobile-settings \
-    # System Applications (from Terra / base / RPM Fusion)
+    # Applications (Terra / base / RPM Fusion)
     coolercontrol \
     mission-center \
     zen-browser \
@@ -110,7 +115,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     vlc \
     g4music \
     peazip \
-    # Build dependencies for extensions
+    # Build dependencies
     meson \
     ninja-build \
     nodejs \
@@ -123,111 +128,204 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gstreamer1-plugin-libav \
     && dnf clean all
 
+# Optional: remove other terminals so nothing falls back to them
+# RUN dnf -y remove ptyxis gnome-terminal gnome-console || true
 
 # ============================================================
-# GHOSTTY CONFIGURATION (DEFAULT TO NEOVIM)
+# GHOSTTY (DEFAULT TERMINAL)
 # ============================================================
 
+# Plain config: Ghostty opens your shell (fish), not nvim
 RUN mkdir -p /etc/skel/.config/ghostty && \
-    printf 'command = nvim\n' > /etc/skel/.config/ghostty/config
+    printf '%s\n' 'shell-integration = fish' > /etc/skel/.config/ghostty/config
 
+# xdg-terminal-exec list (used by newer apps/portals)
+RUN printf '%s\n' 'com.mitchellh.ghostty.desktop' > /etc/xdg/xdg-terminals.list
 
-# ============================================================
-# DESKTOP ENTRIES (NEOVIM OVERRIDE & DECKY)
-# ============================================================
-
-RUN mkdir -p /usr/share/applications && \
-    printf '[Desktop Entry]\nName=Neovim\nGenericName=Text Editor\nComment=Edit text files in Ghostty\nExec=ghostty -e nvim\nTerminal=false\nType=Application\nCategories=Utility;TextEditor;\nStartupNotify=true\n' > /usr/share/applications/nvim.desktop
-
-RUN printf '[Desktop Entry]\nName=Install Decky Loader\nGenericName=Plugin Loader\nComment=Install the official Decky plugin loader\nExec=curl -L https://github.com/SteamDeckHomebrew/decky-installer/releases/latest/download/install_release.sh | sh\nTerminal=true\nType=Application\nCategories=System;\n' > /usr/share/applications/install-decky.desktop
-
+# Fail the build early if the Ghostty desktop file is not where we expect
+RUN ls /usr/share/applications | grep -i ghostty
 
 # ============================================================
-# EXTENSIONS BUILD & INSTALL SCRIPT (/bootstrap/build-extensions.sh)
+# DESKTOP ENTRIES
+# ============================================================
+
+# Neovim launcher (runs inside Ghostty)
+RUN printf '%s\n' \
+    '[Desktop Entry]' \
+    'Name=Neovim' \
+    'GenericName=Text Editor' \
+    'Comment=Edit text files in Ghostty' \
+    'Exec=ghostty -e nvim %F' \
+    'Terminal=false' \
+    'Type=Application' \
+    'Categories=Utility;TextEditor;' \
+    'MimeType=text/plain;' \
+    'StartupNotify=true' \
+    > /usr/share/applications/nvim.desktop
+
+# Decky Loader installer (Exec has no pipe support, so wrap in sh -c)
+RUN printf '%s\n' \
+    '[Desktop Entry]' \
+    'Name=Install Decky Loader' \
+    'GenericName=Plugin Loader' \
+    'Comment=Install the official Decky plugin loader' \
+    'Exec=sh -c "curl -L https://github.com/SteamDeckHomebrew/decky-installer/releases/latest/download/install_release.sh | sh"' \
+    'Terminal=true' \
+    'Type=Application' \
+    'Categories=System;' \
+    > /usr/share/applications/install-decky.desktop
+
+# Bold Brew menu entry (shipped in the image; the binary arrives at first boot)
+RUN printf '%s\n' \
+    '[Desktop Entry]' \
+    'Name=Bold Brew' \
+    'GenericName=Package Manager TUI' \
+    'Comment=Modern Terminal UI for managing Homebrew packages' \
+    'Exec=ghostty -e /home/linuxbrew/.linuxbrew/bin/bbrew' \
+    'Terminal=false' \
+    'Type=Application' \
+    'Categories=System;Settings;PackageManager;' \
+    'StartupNotify=true' \
+    > /usr/share/applications/bold-brew.desktop
+
+# ============================================================
+# GNOME EXTENSIONS
+# Folder name MUST equal the uuid in metadata.json, so we read it
+# from each zip instead of guessing.
+# ============================================================
+
+RUN set -eux; \
+    EXT=/usr/share/gnome-shell/extensions; \
+    install_ext() { \
+        tmp=$(mktemp -d); \
+        unzip -q "$1" -d "$tmp"; \
+        uuid=$(sed -n 's/.*"uuid"[^"]*"\([^"]*\)".*/\1/p' "$tmp/metadata.json" | head -n1); \
+        test -n "$uuid"; \
+        mkdir -p "$EXT/$uuid"; \
+        cp -r "$tmp"/. "$EXT/$uuid/"; \
+        if [ -d "$EXT/$uuid/schemas" ] && [ ! -f "$EXT/$uuid/schemas/gschemas.compiled" ]; then \
+            glib-compile-schemas "$EXT/$uuid/schemas"; \
+        fi; \
+        rm -rf "$tmp"; \
+    }; \
+    wget -q -O /tmp/bmw.zip "https://github.com/Schneegans/Burn-My-Windows/releases/latest/download/burn-my-windows@schneegans.github.com.zip"; \
+    install_ext /tmp/bmw.zip; \
+    url=$(curl -fsSL https://api.github.com/repos/oliwebd/o-tiling/releases/latest | grep -o '"browser_download_url": *"[^"]*\.zip"' | head -n1 | cut -d'"' -f4); \
+    test -n "$url"; \
+    wget -q -O /tmp/otiling.zip "$url"; \
+    install_ext /tmp/otiling.zip; \
+    rm -f /tmp/*.zip; \
+    echo "Installed extensions:"; ls "$EXT"
+
+# ============================================================
+# DCONF DEFAULTS (extensions enabled + Ghostty default terminal)
+# ============================================================
+
+RUN mkdir -p /etc/dconf/profile /etc/dconf/db/local.d && \
+    printf '%s\n' 'user-db:user' 'system-db:local' > /etc/dconf/profile/user && \
+    printf '%s\n' \
+        '[org/gnome/desktop/applications/terminal]' \
+        "exec='ghostty'" \
+        "exec-arg='-e'" \
+        '' \
+        '[org/gnome/settings-daemon/plugins/media-keys]' \
+        "terminal=['<Primary><Alt>t']" \
+        > /etc/dconf/db/local.d/01-terminal
+
+# Enable every extension installed in the image, then compile the dconf db
+RUN exts=$(ls /usr/share/gnome-shell/extensions | sed "s/.*/'&'/" | paste -sd,) && \
+    printf '%s\n' '[org/gnome/shell]' "enabled-extensions=[$exts]" > /etc/dconf/db/local.d/00-extensions && \
+    dconf update
+
+# ============================================================
+# FIRST-BOOT: HOMEBREW + BOLD BREW (root systemd oneshot)
 # ============================================================
 
 RUN mkdir -p /bootstrap
 
-RUN printf '#!/bin/bash\n' > /bootstrap/build-extensions.sh && \
-    printf 'set -euo pipefail\n' >> /bootstrap/build-extensions.sh && \
-    \
-    # 1. Burn-My-Windows (Downloaded directly into /bootstrap)
-    printf 'mkdir -p /bootstrap/burn-my-windows /usr/share/gnome-shell/extensions/burn-my-windows@schneegans.com\n' >> /bootstrap/build-extensions.sh && \
-    printf 'wget --hsts-file=/dev/null https://github.com/Schneegans/Burn-My-Windows/releases/latest/download/burn-my-windows@schneegans.github.com.zip -O /bootstrap/burn-my-windows/bmw.zip\n' >> /bootstrap/build-extensions.sh && \
-    printf 'unzip -q /bootstrap/burn-my-windows/bmw.zip -d /usr/share/gnome-shell/extensions/burn-my-windows@schneegans.com/\n' >> /bootstrap/build-extensions.sh && \
-    \
-    # 2. O-Tiling (Downloaded directly into /bootstrap via API)
-    printf 'mkdir -p /bootstrap/o-tiling /usr/share/gnome-shell/extensions/o-tiling@oliwebd.github.com\n' >> /bootstrap/build-extensions.sh && \
-    printf 'DOWNLOAD_URL=$(curl -s https://api.github.com/repos/oliwebd/o-tiling/releases/latest | grep "browser_download_url.*zip" | cut -d : -f 2,3 | tr -d \x27" \x27)\n' >> /bootstrap/build-extensions.sh && \
-    printf 'wget --hsts-file=/dev/null "$DOWNLOAD_URL" -O /bootstrap/o-tiling/otiling.zip\n' >> /bootstrap/build-extensions.sh && \
-    printf 'unzip -q /bootstrap/o-tiling/otiling.zip -d /usr/share/gnome-shell/extensions/o-tiling@oliwebd.github.com/\n' >> /bootstrap/build-extensions.sh && \
-    \
-    # Cleanup temporary build folders and archives
-    printf 'rm -rf /bootstrap/burn-my-windows /bootstrap/o-tiling\n' >> /bootstrap/build-extensions.sh
+# Part that runs as the unprivileged linuxbrew user
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'set -euo pipefail' \
+    'export PATH=/home/linuxbrew/bin:$PATH' \
+    'export NONINTERACTIVE=1' \
+    '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"' \
+    'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' \
+    'brew tap Valkyrie00/homebrew-bbrew' \
+    'brew install bbrew' \
+    > /bootstrap/brew-as-user.sh
 
-RUN chmod +x /bootstrap/build-extensions.sh && /bootstrap/build-extensions.sh
+# Part that runs as root
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'set -euo pipefail' \
+    'exec > >(tee -a /var/log/install-brew.log) 2>&1' \
+    'if [ -d /home/linuxbrew/.linuxbrew ]; then exit 0; fi' \
+    'id linuxbrew &>/dev/null || useradd -m -s /bin/bash linuxbrew' \
+    'mkdir -p /home/linuxbrew/bin' \
+    'printf "#!/bin/bash\nexec \"\$@\"\n" > /home/linuxbrew/bin/sudo' \
+    'chmod +x /home/linuxbrew/bin/sudo' \
+    'chown -R linuxbrew:linuxbrew /home/linuxbrew' \
+    'su - linuxbrew -c "bash /bootstrap/brew-as-user.sh"' \
+    > /bootstrap/install-brew.sh && \
+    chmod +x /bootstrap/install-brew.sh
+
+RUN printf '%s\n' \
+    '[Unit]' \
+    'Description=Install Homebrew and Bold Brew (first boot)' \
+    'After=network-online.target' \
+    'Wants=network-online.target' \
+    'ConditionPathExists=!/home/linuxbrew/.linuxbrew' \
+    '' \
+    '[Service]' \
+    'Type=oneshot' \
+    'ExecStart=/bootstrap/install-brew.sh' \
+    'TimeoutStartSec=infinity' \
+    '' \
+    '[Install]' \
+    'WantedBy=multi-user.target' \
+    > /etc/systemd/system/install-brew.service
 
 # ============================================================
-# FIRST-BOOT HOMEBREW & BOLD BREW INSTALLER SETUP (/bootstrap)
+# FIRST-BOOT: FLATPAKS (root systemd oneshot)
 # ============================================================
 
-RUN mkdir -p /bootstrap /etc/xdg/autostart
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'set -euo pipefail' \
+    'exec > >(tee -a /var/log/install-flatpaks.log) 2>&1' \
+    'flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo' \
+    'flatpak install --system --assumeyes flathub org.localsend.localsend_app io.github.swordpuffin.rewaita com.mattjakeman.ExtensionManager io.github.flattool.Warehouse io.ente.auth com.github.vladimiry.ElectronMail io.github.kolunmi.Bazaar com.github.tchx84.Flatseal it.mijorus.gearlever io.freetubeapp.FreeTube org.signal.Signal io.github.Foldex.AdwSteamGtk page.codeberg.libre_menu_editor.LibreMenuEditor com.github.iwalton3.jellyfin-media-player io.github.ilya_zlobintsev.LACT net.jami.Jami' \
+    'flatpak install --system --assumeyes https://flatpak.unom.io/io.unom.punktfunk.flatpakref' \
+    > /bootstrap/install-flatpaks.sh && \
+    chmod +x /bootstrap/install-flatpaks.sh
 
-RUN printf '#!/bin/bash\n' > /bootstrap/install-brew.sh && \
-    printf 'set -euo pipefail\n' >> /bootstrap/install-brew.sh && \
-    printf 'exec > >(tee -a /tmp/install-brew.log) 2>&1\n' >> /bootstrap/install-brew.sh && \
-    printf 'if [ -d "/home/linuxbrew/.linuxbrew" ]; then exit 0; fi\n' >> /bootstrap/install-brew.sh && \
-    printf 'useradd -m -s /bin/bash linuxbrew\n' >> /bootstrap/install-brew.sh && \
-    printf 'mkdir -p /home/linuxbrew/bin\n' >> /bootstrap/install-brew.sh && \
-    printf 'printf "#!/bin/bash\\n\\"\\$@\\"\\n" > /home/linuxbrew/bin/sudo\n' >> /bootstrap/install-brew.sh && \
-    printf 'chmod +x /home/linuxbrew/bin/sudo\n' >> /bootstrap/install-brew.sh && \
-    printf 'chown -R linuxbrew:linuxbrew /home/linuxbrew\n' >> /bootstrap/install-brew.sh && \
-    printf 'su - linuxbrew -c "export PATH=\\"/home/linuxbrew/bin:\\$PATH\\"; NONINTERACTIVE=1 /bin/bash -c \\"\\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\\" && NONINTERACTIVE=1 /bin/bash -c \\"\\$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)\\""\n' >> /bootstrap/install-brew.sh && \
-    printf 'mkdir -p ~/.local/share/applications\n' >> /bootstrap/install-brew.sh && \
-    printf 'printf "[Desktop Entry]\\nName=Bold Brew\\nGenericName=Package Manager TUI\\nComment=Modern Terminal UI for managing Homebrew packages\\nExec=ghostty -e bbrew\\nTerminal=false\\nType=Application\\nCategories=System;Settings;PackageManager;\\nStartupNotify=true\\n" > ~/.local/share/applications/bold-brew.desktop\n' >> /bootstrap/install-brew.sh
+RUN printf '%s\n' \
+    '[Unit]' \
+    'Description=Install default Flatpaks (first boot)' \
+    'After=network-online.target' \
+    'Wants=network-online.target' \
+    'ConditionPathExists=!/var/lib/flatpaks-installed' \
+    '' \
+    '[Service]' \
+    'Type=oneshot' \
+    'ExecStart=/bootstrap/install-flatpaks.sh' \
+    'ExecStartPost=/usr/bin/touch /var/lib/flatpaks-installed' \
+    'TimeoutStartSec=infinity' \
+    '' \
+    '[Install]' \
+    'WantedBy=multi-user.target' \
+    > /etc/systemd/system/install-flatpaks.service
 
-RUN chmod +x /bootstrap/install-brew.sh
-
-RUN printf '[Desktop Entry]\nType=Application\nName=Install Homebrew\nExec=/bootstrap/install-brew.sh\nTerminal=false\nNoDisplay=true\n' > /etc/xdg/autostart/install-brew.desktop
-
-
-# ============================================================
-# FIRST-BOOT FLATPAK INSTALLER SETUP (/bootstrap)
-# ============================================================
-
-RUN printf '#!/bin/bash\n' > /bootstrap/install-flatpaks.sh && \
-    printf 'set -euo pipefail\n' >> /bootstrap/install-flatpaks.sh && \
-    printf 'exec > >(tee -a /tmp/install-flatpaks.log) 2>&1\n' >> /bootstrap/install-flatpaks.sh && \
-    printf 'flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo\n' >> /bootstrap/install-flatpaks.sh && \
-    printf 'flatpak install --system --assumeyes flathub \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    org.localsend.localsend_app \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    io.github.swordpuffin.rewaita \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    com.mattjakeman.ExtensionManager \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    io.github.flattool.Warehouse \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    io.ente.auth \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    com.github.vladimiry.ElectronMail \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    io.github.kolunmi.Bazaar \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    com.github.tchx84.Flatseal \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    it.mijorus.gearlever \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    io.freetubeapp.FreeTube \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    org.signal.Signal \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    io.github.Foldex.AdwSteamGtk \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    page.codeberg.libre_menu_editor.LibreMenuEditor \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    com.github.iwalton3.jellyfin-media-player \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    io.github.ilya_zlobintsev.LACT \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    net.jami.Jami\n' >> /bootstrap/install-flatpaks.sh && \
-    printf 'flatpak install --user --assumeyes https://flatpak.unom.io/io.unom.punktfunk.flatpakref\n' >> /bootstrap/install-flatpaks.sh
-
-RUN chmod +x /bootstrap/install-flatpaks.sh
-
-RUN printf '[Desktop Entry]\nType=Application\nName=Install Missing Flatpaks\nExec=/bootstrap/install-flatpaks.sh\nTerminal=false\nNoDisplay=true\n' > /etc/xdg/autostart/install-flatpaks.desktop
-
+RUN systemctl enable install-brew.service install-flatpaks.service
 
 # ============================================================
 # DEFAULT SHELL & BOOT TARGET
 # ============================================================
 
-RUN chsh -s /usr/bin/fish
+# fish for newly created users (chsh only affects root inside the image)
+RUN sed -i 's|^SHELL=.*|SHELL=/usr/bin/fish|' /etc/default/useradd && \
+    chsh -s /usr/bin/fish
 
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
@@ -237,4 +335,4 @@ RUN systemctl enable gdm.service && \
 # ============================================================
 
 RUN rm -rf /var && \
-    mkdir -p /var/tmp 
+    mkdir -p /var/tmp
