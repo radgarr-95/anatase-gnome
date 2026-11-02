@@ -8,17 +8,17 @@ FROM i.anatase.org/base:stable
 RUN curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo \
     -o /etc/yum.repos.d/terra.repo
 
-# Enable RPM Fusion repositories for Steam
+# Enable RPM Fusion repositories for Steam/VLC
 RUN dnf -y install \
     https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
 # ============================================================
-# SYSTEM PACKAGES
+# SYSTEM PACKAGES (INCLUDING CLI UTILS)
 # ============================================================
 
 RUN dnf -y --setopt=install_weak_deps=False install \
-    # GNOME desktop
+    # GNOME desktop & extensions app
     dconf \
     gdm \
     gnome-control-center \
@@ -26,10 +26,19 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gnome-session-wayland-session \
     gnome-settings-daemon \
     gnome-shell \
+    gnome-extensions-app \
     nautilus \
     # Terminal and shell
     ghostty \
     fish \
+    # CLI Utilities (without Yazi)
+    neovim \
+    oh-my-posh \
+    eza \
+    fzf \
+    ripgrep \
+    zoxide \
+    uv \
     # System utilities
     procps-ng \
     curl \
@@ -87,11 +96,16 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     phosh \
     phoc \
     phosh-mobile-settings \
-    # Additional applications (from Terra / base)
+    # Additional applications (from Terra / base / RPM Fusion)
     coolercontrol \
     mission-center \
     zen-browser \
     heroic-games-launcher \
+    qbittorrent \
+    libreoffice \
+    vlc \
+    g4music \
+    peazip \
     # Hanabi build dependencies
     meson \
     ninja-build \
@@ -107,54 +121,11 @@ RUN dnf -y --setopt=install_weak_deps=False install \
 
 
 # ============================================================
-# HOMEBREW, BOLD BREW & CLI UTILS
+# DESKTOP ENTRIES
 # ============================================================
 
-# Install using a dedicated non-root user (Homebrew requirement)
-RUN useradd -m -s /bin/bash linuxbrew
-
-USER linuxbrew
-ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/home/linuxbrew/bin:${PATH}"
-
-# Create a mock 'sudo' in user space so installer scripts don't crash on sudo checks
-RUN mkdir -p /home/linuxbrew/bin && \
-    printf '#!/bin/bash\n"$@"\n' > /home/linuxbrew/bin/sudo && \
-    chmod +x /home/linuxbrew/bin/sudo
-
-# 1. Install official Homebrew non-interactively
-RUN NONINTERACTIVE=1 /bin/bash -c \
-    "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# 2. Install Bold Brew using its official installer script
-RUN NONINTERACTIVE=1 /bin/bash -c \
-    "$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)"
-
-# 3. Install Neovim and requested CLI utilities via standard brew
-RUN brew install \
-    neovim \
-    oh-my-posh \
-    eza \
-    fzf \
-    ripgrep \
-    zoxide \
-    yazi \
-    uv
-
-# 4. Clone LazyVim starter template directly into Homebrew's config path
-RUN mkdir -p ~/.config && \
-    git clone https://github.com/LazyVim/starter ~/.config/nvim && \
-    rm -rf ~/.config/nvim/.git
-
-USER root
-
-# Expose Homebrew globally
-ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
-
-# Create desktop entries for Neovim and Bold Brew using safe printf strings
 RUN mkdir -p /usr/share/applications && \
-    printf '[Desktop Entry]\nName=Neovim\nGenericName=Text Editor\nComment=Edit text files using Neovim\nExec=ghostty -e nvim %%F\nTerminal=false\nType=Application\nCategories=Utility;TextEditor;Development;\nStartupNotify=true\nMimeType=text/plain;inode/directory;\n' > /usr/share/applications/nvim.desktop
-
-RUN printf '[Desktop Entry]\nName=Bold Brew\nGenericName=Package Manager TUI\nComment=Modern Terminal UI for managing Homebrew packages\nExec=ghostty -e bbrew\nTerminal=false\nType=Application\nCategories=System;Settings;PackageManager;\nStartupNotify=true\n' > /usr/share/applications/bold-brew.desktop
+    printf '[Desktop Entry]\nName=Bold Brew\nGenericName=Package Manager TUI\nComment=Modern Terminal UI for managing Homebrew packages\nExec=ghostty -e bbrew\nTerminal=false\nType=Application\nCategories=System;Settings;PackageManager;\nStartupNotify=true\n' > /usr/share/applications/bold-brew.desktop
 
 
 # ============================================================
@@ -177,49 +148,71 @@ RUN git clone --depth 1 \
 
 
 # ============================================================
-# DEFAULT SHELL
+# FIRST-BOOT HOMEBREW & BOLD BREW INSTALLER SETUP
+# ============================================================
+
+RUN printf '#!/bin/bash\n\
+if [ -d "/home/linuxbrew/.linuxbrew" ]; then\n\
+    exit 0\n\
+fi\n\
+useradd -m -s /bin/bash linuxbrew\n\
+mkdir -p /home/linuxbrew/bin\n\
+printf "#!/bin/bash\\n\\"\\$@\\"\\n" > /home/linuxbrew/bin/sudo\n\
+chmod +x /home/linuxbrew/bin/sudo\n\
+chown -R linuxbrew:linuxbrew /home/linuxbrew\n\
+su - linuxbrew -c '\'' \
+export PATH="/home/linuxbrew/bin:$PATH" \
+NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" && \
+NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)" \
+'\''\n\
+rm -f /etc/xdg/autostart/install-brew.desktop\n' > /usr/local/bin/install-brew.sh && \
+    chmod +x /usr/local/bin/install-brew.sh
+
+RUN mkdir -p /etc/xdg/autostart && \
+    printf '[Desktop Entry]\n\
+Type=Application\n\
+Name=Install Homebrew\n\
+Exec=/usr/local/bin/install-brew.sh\n\
+Terminal=false\n\
+NoDisplay=true\n' > /etc/xdg/autostart/install-brew.desktop
+
+
+# ============================================================
+# FIRST-BOOT FLATPAK INSTALLER SETUP
+# ============================================================
+
+RUN printf '#!/bin/bash\n\
+flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo\n\
+flatpak install --system --assumeyes flathub \\\n\
+    org.localsend.localsend_app \\\n\
+    io.github.swordpuffin.rewaita \\\n\
+    com.mattjakeman.ExtensionManager \\\n\
+    io.github.flattool.Warehouse\n\
+rm -f /etc/xdg/autostart/install-flatpaks.desktop\n' > /usr/local/bin/install-flatpaks.sh && \
+    chmod +x /usr/local/bin/install-flatpaks.sh
+
+RUN mkdir -p /etc/xdg/autostart && \
+    printf '[Desktop Entry]\n\
+Type=Application\n\
+Name=Install Missing Flatpaks\n\
+Exec=/usr/local/bin/install-flatpaks.sh\n\
+Terminal=false\n\
+NoDisplay=true\n' > /etc/xdg/autostart/install-flatpaks.desktop
+
+
+# ============================================================
+# DEFAULT SHELL & BOOT TARGET
 # ============================================================
 
 RUN chsh -s /usr/bin/fish
 
-
-# ============================================================
-# DISPLAY MANAGER AND BOOT
-# ============================================================
-
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
 
-
 # ============================================================
-# SAFE CLEANUP (Clears caches without destroying Flatpaks)
-# ============================================================
-RUN rm -rf /var/cache/dnf/* /var/log/* /var/tmp/*
-
-
-# ============================================================
-# FLATPAK APPLICATIONS
+# CLEANUP (LEAVE THIS HERE)
 # ============================================================
 
-RUN flatpak remote-add --system --if-not-exists \
-    flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+RUN rm -rf /var && \
+    mkdir -p /var/tmp 
 
-RUN flatpak install --system --assumeyes flathub \
-    com.mattjakeman.ExtensionManager \
-    io.github.kolunmi.Bazaar \
-    com.github.tchx84.Flatseal \
-    io.github.flattool.Warehouse \
-    io.github.swordpuffin.rewaita \
-    org.qbittorrent.qBittorrent \
-    it.mijorus.gearlever \
-    org.libreoffice.LibreOffice \
-    io.ente.auth \
-    io.freetubeapp.FreeTube \
-    org.videolan.VLC \
-    com.github.neithern.g4music \
-    org.signal.Signal \
-    io.github.Foldex.AdwSteamGtk \
-    org.localsend.localsend_app \
-    io.github.peazip.PeaZip \
-    com.github.vladimiry.ElectronMail \
-    page.codeberg.libre_menu_editor.LibreMenuEditor
