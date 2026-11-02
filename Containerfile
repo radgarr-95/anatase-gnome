@@ -130,22 +130,19 @@ RUN mkdir -p /usr/share/applications && \
 
 
 # ============================================================
-# HANABI GNOME LIVE WALLPAPER EXTENSION
+# HANABI EXTENSION BUILD SCRIPT (EXECUTED DURING BUILD)
 # ============================================================
 
-RUN git clone --depth 1 \
-    https://github.com/jeffshee/gnome-ext-hanabi.git \
-    /tmp/hanabi && \
-    mkdir -p /tmp/hanabi-home /tmp/hanabi-npm-cache && \
-    HOME=/tmp/hanabi-home \
-    npm_config_cache=/tmp/hanabi-npm-cache \
-    make -C /tmp/hanabi install && \
-    install -d /usr/share/gnome-shell/extensions && \
-    test -d /tmp/hanabi-home/.local/share/gnome-shell/extensions/hanabi-extension@jeffshee.github.io && \
-    cp -a \
-        /tmp/hanabi-home/.local/share/gnome-shell/extensions/hanabi-extension@jeffshee.github.io \
-        /usr/share/gnome-shell/extensions/ && \
-    rm -rf /tmp/hanabi /tmp/hanabi-home /tmp/hanabi-npm-cache
+RUN printf '#!/bin/bash\n' > /tmp/build-hanabi.sh && \
+    printf 'set -euo pipefail\n' >> /tmp/build-hanabi.sh && \
+    printf 'git clone --depth 1 https://github.com/jeffshee/gnome-ext-hanabi.git /tmp/hanabi\n' >> /tmp/build-hanabi.sh && \
+    printf 'mkdir -p /tmp/hanabi-home /tmp/hanabi-npm-cache\n' >> /tmp/build-hanabi.sh && \
+    printf 'HOME=/tmp/hanabi-home npm_config_cache=/tmp/hanabi-npm-cache make -C /tmp/hanabi install\n' >> /tmp/build-hanabi.sh && \
+    printf 'install -d /usr/share/gnome-shell/extensions\n' >> /tmp/build-hanabi.sh && \
+    printf 'cp -a /tmp/hanabi-home/.local/share/gnome-shell/extensions/hanabi-extension@jeffshee.github.io /usr/share/gnome-shell/extensions/\n' >> /tmp/build-hanabi.sh && \
+    printf 'rm -rf /tmp/hanabi /tmp/hanabi-home /tmp/hanabi-npm-cache\n' >> /tmp/build-hanabi.sh
+
+RUN chmod +x /tmp/build-hanabi.sh && /tmp/build-hanabi.sh && rm -f /tmp/build-hanabi.sh
 
 
 # ============================================================
@@ -155,6 +152,9 @@ RUN git clone --depth 1 \
 RUN mkdir -p /bootstrap /etc/xdg/autostart
 
 RUN printf '#!/bin/bash\n' > /bootstrap/install-brew.sh && \
+    printf 'set -euo pipefail\n' >> /bootstrap/install-brew.sh && \
+    printf 'mkdir -p /var/log/bootstrap\n' >> /bootstrap/install-brew.sh && \
+    printf 'exec > >(tee -a /var/log/bootstrap/install-brew.log) 2>&1\n' >> /bootstrap/install-brew.sh && \
     printf 'if [ -d "/home/linuxbrew/.linuxbrew" ]; then exit 0; fi\n' >> /bootstrap/install-brew.sh && \
     printf 'useradd -m -s /bin/bash linuxbrew\n' >> /bootstrap/install-brew.sh && \
     printf 'mkdir -p /home/linuxbrew/bin\n' >> /bootstrap/install-brew.sh && \
@@ -174,6 +174,9 @@ RUN printf '[Desktop Entry]\nType=Application\nName=Install Homebrew\nExec=/boot
 # ============================================================
 
 RUN printf '#!/bin/bash\n' > /bootstrap/install-flatpaks.sh && \
+    printf 'set -euo pipefail\n' >> /bootstrap/install-flatpaks.sh && \
+    printf 'mkdir -p /var/log/bootstrap\n' >> /bootstrap/install-flatpaks.sh && \
+    printf 'exec > >(tee -a /var/log/bootstrap/install-flatpaks.log) 2>&1\n' >> /bootstrap/install-flatpaks.sh && \
     printf 'flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo\n' >> /bootstrap/install-flatpaks.sh && \
     printf 'flatpak install --system --assumeyes flathub \\\n' >> /bootstrap/install-flatpaks.sh && \
     printf '    org.localsend.localsend_app \\\n' >> /bootstrap/install-flatpaks.sh && \
@@ -188,8 +191,7 @@ RUN printf '#!/bin/bash\n' > /bootstrap/install-flatpaks.sh && \
     printf '    io.freetubeapp.FreeTube \\\n' >> /bootstrap/install-flatpaks.sh && \
     printf '    org.signal.Signal \\\n' >> /bootstrap/install-flatpaks.sh && \
     printf '    io.github.Foldex.AdwSteamGtk \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    page.codeberg.libre_menu_editor.LibreMenuEditor \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    io.unom.punktfunk\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    page.codeberg.libre_menu_editor.LibreMenuEditor\n' >> /bootstrap/install-flatpaks.sh && \
     printf 'rm -f /etc/xdg/autostart/install-flatpaks.desktop\n' >> /bootstrap/install-flatpaks.sh
 
 RUN chmod +x /bootstrap/install-flatpaks.sh
