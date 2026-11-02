@@ -14,7 +14,7 @@ RUN dnf -y install \
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
 # ============================================================
-# SYSTEM PACKAGES (INCLUDING CLI UTILS)
+# SYSTEM PACKAGES (INCLUDING ALL AVAILABLE NATIVE APPS)
 # ============================================================
 
 RUN dnf -y --setopt=install_weak_deps=False install \
@@ -96,7 +96,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     phosh \
     phoc \
     phosh-mobile-settings \
-    # Additional applications (from Terra / base / RPM Fusion)
+    # System Applications (from Terra / base / RPM Fusion)
     coolercontrol \
     mission-center \
     zen-browser \
@@ -182,7 +182,7 @@ EOF
 
 
 # ============================================================
-# FIRST-BOOT FLATPAK INSTALLER SETUP
+# FIRST-BOOT FLATPAK INSTALLER SETUP (REMAINING APPS)
 # ============================================================
 
 RUN cat << 'EOF' > /usr/local/bin/install-flatpaks.sh
@@ -192,7 +192,16 @@ flatpak install --system --assumeyes flathub \
     org.localsend.localsend_app \
     io.github.swordpuffin.rewaita \
     com.mattjakeman.ExtensionManager \
-    io.github.flattool.Warehouse
+    io.github.flattool.Warehouse \
+    io.ente.auth \
+    com.github.vladimiry.ElectronMail \
+    io.github.kolunmi.Bazaar \
+    com.github.tchx84.Flatseal \
+    it.mijorus.gearlever \
+    io.freetubeapp.FreeTube \
+    org.signal.Signal \
+    io.github.Foldex.AdwSteamGtk \
+    page.codeberg.libre_menu_editor.LibreMenuEditor
 rm -f /etc/xdg/autostart/install-flatpaks.desktop
 EOF
     chmod +x /usr/local/bin/install-flatpaks.sh
@@ -216,10 +225,8 @@ RUN chsh -s /usr/bin/fish
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
 
-# ============================================================
-# CLEANUP (LEAVE THIS HERE)
-# ============================================================
 
-RUN rm -rf /var && \
-    mkdir -p /var/tmp 
-
+# ============================================================
+# SAFE CLEANUP
+# ============================================================
+RUN rm -rf /var/cache/dnf/* /var/log/* /var/tmp/*
