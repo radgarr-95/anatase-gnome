@@ -39,7 +39,6 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     file \
     bzip2 \
     unzip \
-    neovim \
     # Hardware and device support
     liquidctl \
     fprintd-pam \
@@ -106,43 +105,12 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gstreamer1-plugin-libav \
     && dnf clean all
 
-# ============================================================
-# NEOVIM & LAZYVIM SETUP (Non-Root User)
-# ============================================================
-
-# 1. Create a dedicated non-root developer user
-RUN useradd -m -s /bin/bash developer
-
-# 2. Switch to developer user to create config and clone LazyVim safely
-USER developer
-RUN mkdir -p /home/developer/.config && \
-    git clone https://github.com/LazyVim/starter /home/developer/.config/nvim && \
-    rm -rf /home/developer/.config/nvim/.git
-
-# 3. Switch back to root for system-level configurations
-USER root
-
-# 4. Create a desktop entry for Neovim (launching via Ghostty)
-RUN mkdir -p /usr/share/applications && \
-    cat << 'EOF' > /usr/share/applications/nvim.desktop
-[Desktop Entry]
-Name=Neovim
-GenericName=Text Editor
-Comment=Edit text files using Neovim
-Exec=ghostty -e nvim %F
-Terminal=false
-Type=Application
-Categories=Utility;TextEditor;Development;
-StartupNotify=true
-MimeType=text/plain;inode/directory;
-EOF
-
 
 # ============================================================
-# BOLD BREW (TUI PACKAGE MANAGER) & CLI UTILS
+# BOLD BREW (TUI PACKAGE MANAGER), NEOVIM & CLI UTILS
 # ============================================================
 
-# Install using a temporary non-root user (Homebrew requirement)
+# Install using a dedicated non-root user (Homebrew requirement)
 RUN useradd -m -s /bin/bash linuxbrew
 
 USER linuxbrew
@@ -150,8 +118,9 @@ USER linuxbrew
 RUN NONINTERACTIVE=1 /bin/bash -c \
     "$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)"
 
-# Install requested CLI utilities via Homebrew
+# Install Neovim and requested CLI utilities via Homebrew
 RUN /home/linuxbrew/.linuxbrew/bin/brew install \
+    neovim \
     oh-my-posh \
     eza \
     fzf \
@@ -160,24 +129,21 @@ RUN /home/linuxbrew/.linuxbrew/bin/brew install \
     yazi \
     uv
 
+# Clone LazyVim starter template directly into Homebrew's user config path
+RUN mkdir -p ~/.config && \
+    git clone https://github.com/LazyVim/starter ~/.config/nvim && \
+    rm -rf ~/.config/nvim/.git
+
 USER root
 
 # Expose Bold Brew and Homebrew globally in the system PATH
 ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
 
-# Create a desktop entry to launch Bold Brew inside Ghostty
+# Create desktop entries for Neovim and Bold Brew using safe printf strings
 RUN mkdir -p /usr/share/applications && \
-    cat << 'EOF' > /usr/share/applications/bold-brew.desktop
-[Desktop Entry]
-Name=Bold Brew
-GenericName=Package Manager TUI
-Comment=Modern Terminal UI for managing Homebrew packages
-Exec=ghostty -e bbrew
-Terminal=false
-Type=Application
-Categories=System;Settings;PackageManager;
-StartupNotify=true
-EOF
+    printf '[Desktop Entry]\nName=Neovim\nGenericName=Text Editor\nComment=Edit text files using Neovim\nExec=ghostty -e nvim %%F\nTerminal=false\nType=Application\nCategories=Utility;TextEditor;Development;\nStartupNotify=true\nMimeType=text/plain;inode/directory;\n' > /usr/share/applications/nvim.desktop
+
+RUN printf '[Desktop Entry]\nName=Bold Brew\nGenericName=Package Manager TUI\nComment=Modern Terminal UI for managing Homebrew packages\nExec=ghostty -e bbrew\nTerminal=false\nType=Application\nCategories=System;Settings;PackageManager;\nStartupNotify=true\n' > /usr/share/applications/bold-brew.desktop
 
 
 # ============================================================
