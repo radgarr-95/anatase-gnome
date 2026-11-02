@@ -139,11 +139,12 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gstreamer1-plugin-libav \
     && dnf clean all
 
+
 # ============================================================
 # NEOVIM & LAZYVIM SETUP
 # ============================================================
 
-# 1. Ensure the parent config directory exists, then clone LazyVim starter template
+# 1. Create config directory and clone LazyVim starter template
 RUN mkdir -p /root/.config && \
     git clone https://github.com/LazyVim/starter /root/.config/nvim && \
     rm -rf /root/.config/nvim/.git
@@ -165,7 +166,7 @@ EOF
 
 
 # ============================================================
-# BOLD BREW (TUI PACKAGE MANAGER)
+# BOLD BREW (TUI PACKAGE MANAGER) & CLI UTILS
 # ============================================================
 
 # Install using a temporary non-root user (Homebrew requirement)
@@ -175,6 +176,16 @@ USER linuxbrew
 
 RUN NONINTERACTIVE=1 /bin/bash -c \
     "$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)"
+
+# Install requested CLI utilities via Homebrew
+RUN /home/linuxbrew/.linuxbrew/bin/brew install \
+    oh-my-posh \
+    eza \
+    fzf \
+    ripgrep \
+    zoxide \
+    yazi \
+    uv
 
 USER root
 
