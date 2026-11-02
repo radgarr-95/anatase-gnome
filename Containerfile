@@ -151,29 +151,21 @@ RUN mkdir -p /bootstrap
 RUN printf '#!/bin/bash\n' > /bootstrap/build-extensions.sh && \
     printf 'set -euo pipefail\n' >> /bootstrap/build-extensions.sh && \
     \
-    # 1. Hanabi (Dedicated folder & compilation)
-    printf 'mkdir -p /bootstrap/hanabi\n' >> /bootstrap/build-extensions.sh && \
-    printf 'git clone --depth 1 https://github.com/jeffshee/gnome-ext-hanabi.git /bootstrap/hanabi/src\n' >> /bootstrap/build-extensions.sh && \
-    printf 'mkdir -p /bootstrap/hanabi/home /bootstrap/hanabi/npm-cache\n' >> /bootstrap/build-extensions.sh && \
-    printf 'HOME=/bootstrap/hanabi/home npm_config_cache=/bootstrap/hanabi/npm-cache make -C /bootstrap/hanabi/src install\n' >> /bootstrap/build-extensions.sh && \
-    printf 'install -d /usr/share/gnome-shell/extensions\n' >> /bootstrap/build-extensions.sh && \
-    printf 'cp -a /bootstrap/hanabi/home/.local/share/gnome-shell/extensions/hanabi-extension@jeffshee.github.io /usr/share/gnome-shell/extensions/\n' >> /bootstrap/build-extensions.sh && \
-    \
-    # 2. Burn-My-Windows (Downloaded via wget official zip release)
+    # 1. Burn-My-Windows (Downloaded directly into /bootstrap)
     printf 'mkdir -p /bootstrap/burn-my-windows /usr/share/gnome-shell/extensions/burn-my-windows@schneegans.com\n' >> /bootstrap/build-extensions.sh && \
-    printf 'wget https://github.com/Schneegans/Burn-My-Windows/releases/latest/download/burn-my-windows@schneegans.github.com.zip -O /bootstrap/burn-my-windows/bmw.zip\n' >> /bootstrap/build-extensions.sh && \
+    printf 'wget --hsts-file=/dev/null https://github.com/Schneegans/Burn-My-Windows/releases/latest/download/burn-my-windows@schneegans.github.com.zip -O /bootstrap/burn-my-windows/bmw.zip\n' >> /bootstrap/build-extensions.sh && \
     printf 'unzip -q /bootstrap/burn-my-windows/bmw.zip -d /usr/share/gnome-shell/extensions/burn-my-windows@schneegans.com/\n' >> /bootstrap/build-extensions.sh && \
     \
-    # 3. O-Tiling (Downloaded via official API release zip)
+    # 2. O-Tiling (Downloaded directly into /bootstrap via API)
     printf 'mkdir -p /bootstrap/o-tiling /usr/share/gnome-shell/extensions/o-tiling@oliwebd.github.com\n' >> /bootstrap/build-extensions.sh && \
-    printf 'curl -s https://api.github.com/repos/oliwebd/o-tiling/releases/latest | grep "browser_download_url.*zip" | cut -d : -f 2,3 | tr -d \\x27"\\x27 | xargs -I {} curl -sL {} -o /tmp/otiling.zip\n' >> /bootstrap/build-extensions.sh && \
-    printf 'unzip -q /tmp/otiling.zip -d /usr/share/gnome-shell/extensions/o-tiling@oliwebd.github.com/\n' >> /bootstrap/build-extensions.sh && \
+    printf 'DOWNLOAD_URL=$(curl -s https://api.github.com/repos/oliwebd/o-tiling/releases/latest | grep "browser_download_url.*zip" | cut -d : -f 2,3 | tr -d \x27" \x27)\n' >> /bootstrap/build-extensions.sh && \
+    printf 'wget --hsts-file=/dev/null "$DOWNLOAD_URL" -O /bootstrap/o-tiling/otiling.zip\n' >> /bootstrap/build-extensions.sh && \
+    printf 'unzip -q /bootstrap/o-tiling/otiling.zip -d /usr/share/gnome-shell/extensions/o-tiling@oliwebd.github.com/\n' >> /bootstrap/build-extensions.sh && \
     \
-    # Cleanup all separate temporary bootstrap folders and archives
-    printf 'rm -rf /bootstrap/hanabi /bootstrap/burn-my-windows /bootstrap/o-tiling /tmp/otiling.zip\n' >> /bootstrap/build-extensions.sh
+    # Cleanup temporary build folders and archives
+    printf 'rm -rf /bootstrap/burn-my-windows /bootstrap/o-tiling\n' >> /bootstrap/build-extensions.sh
 
 RUN chmod +x /bootstrap/build-extensions.sh && /bootstrap/build-extensions.sh
-
 
 # ============================================================
 # FIRST-BOOT HOMEBREW & BOLD BREW INSTALLER SETUP (/bootstrap)
