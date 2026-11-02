@@ -139,13 +139,13 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gstreamer1-plugin-libav \
     && dnf clean all
 
-
 # ============================================================
 # NEOVIM & LAZYVIM SETUP
 # ============================================================
 
-# 1. Clone LazyVim starter template into the default root/user configuration path
-RUN git clone https://github.com/LazyVim/starter /root/.config/nvim && \
+# 1. Ensure the parent config directory exists, then clone LazyVim starter template
+RUN mkdir -p /root/.config && \
+    git clone https://github.com/LazyVim/starter /root/.config/nvim && \
     rm -rf /root/.config/nvim/.git
 
 # 2. Create a desktop entry so Neovim shows up in your GNOME application launcher
