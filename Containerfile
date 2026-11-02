@@ -154,71 +154,47 @@ RUN git clone --depth 1 \
 
 RUN mkdir -p /bootstrap /etc/xdg/autostart
 
-RUN cat << 'EOF' > /bootstrap/install-brew.sh
-#!/bin/bash
-if [ -d "/home/linuxbrew/.linuxbrew" ]; then
-    exit 0
-fi
-useradd -m -s /bin/bash linuxbrew
-mkdir -p /home/linuxbrew/bin
-printf '#!/bin/bash\n"$@"\n' > /home/linuxbrew/bin/sudo
-chmod +x /home/linuxbrew/bin/sudo
-chown -R linuxbrew:linuxbrew /home/linuxbrew
-su - linuxbrew -c '
-export PATH="/home/linuxbrew/bin:$PATH"
-NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" &&
-NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)"
-'
-rm -f /etc/xdg/autostart/install-brew.desktop
-EOF
+RUN printf '#!/bin/bash\n' > /bootstrap/install-brew.sh && \
+    printf 'if [ -d "/home/linuxbrew/.linuxbrew" ]; then exit 0; fi\n' >> /bootstrap/install-brew.sh && \
+    printf 'useradd -m -s /bin/bash linuxbrew\n' >> /bootstrap/install-brew.sh && \
+    printf 'mkdir -p /home/linuxbrew/bin\n' >> /bootstrap/install-brew.sh && \
+    printf 'printf "#!/bin/bash\\n\\"\\$@\\"\\n" > /home/linuxbrew/bin/sudo\n' >> /bootstrap/install-brew.sh && \
+    printf 'chmod +x /home/linuxbrew/bin/sudo\n' >> /bootstrap/install-brew.sh && \
+    printf 'chown -R linuxbrew:linuxbrew /home/linuxbrew\n' >> /bootstrap/install-brew.sh && \
+    printf 'su - linuxbrew -c "export PATH=\\"/home/linuxbrew/bin:\\$PATH\\"; NONINTERACTIVE=1 /bin/bash -c \\"\\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\\" && NONINTERACTIVE=1 /bin/bash -c \\"\\$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)\\""\n' >> /bootstrap/install-brew.sh && \
+    printf 'rm -f /etc/xdg/autostart/install-brew.desktop\n' >> /bootstrap/install-brew.sh
 
 RUN chmod +x /bootstrap/install-brew.sh
 
-RUN cat << 'EOF' > /etc/xdg/autostart/install-brew.desktop
-[Desktop Entry]
-Type=Application
-Name=Install Homebrew
-Exec=/bootstrap/install-brew.sh
-Terminal=false
-NoDisplay=true
-EOF
+RUN printf '[Desktop Entry]\nType=Application\nName=Install Homebrew\nExec=/bootstrap/install-brew.sh\nTerminal=false\nNoDisplay=true\n' > /etc/xdg/autostart/install-brew.desktop
 
 
 # ============================================================
 # FIRST-BOOT FLATPAK INSTALLER SETUP (/bootstrap)
 # ============================================================
 
-RUN cat << 'EOF' > /bootstrap/install-flatpaks.sh
-#!/bin/bash
-flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-flatpak install --system --assumeyes flathub \
-    org.localsend.localsend_app \
-    io.github.swordpuffin.rewaita \
-    com.mattjakeman.ExtensionManager \
-    io.github.flattool.Warehouse \
-    io.ente.auth \
-    com.github.vladimiry.ElectronMail \
-    io.github.kolunmi.Bazaar \
-    com.github.tchx84.Flatseal \
-    it.mijorus.gearlever \
-    io.freetubeapp.FreeTube \
-    org.signal.Signal \
-    io.github.Foldex.AdwSteamGtk \
-    page.codeberg.libre_menu_editor.LibreMenuEditor \
-    io.unom.punktfunk
-rm -f /etc/xdg/autostart/install-flatpaks.desktop
-EOF
+RUN printf '#!/bin/bash\n' > /bootstrap/install-flatpaks.sh && \
+    printf 'flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo\n' >> /bootstrap/install-flatpaks.sh && \
+    printf 'flatpak install --system --assumeyes flathub \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    org.localsend.localsend_app \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    io.github.swordpuffin.rewaita \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    com.mattjakeman.ExtensionManager \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    io.github.flattool.Warehouse \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    io.ente.auth \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    com.github.vladimiry.ElectronMail \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    io.github.kolunmi.Bazaar \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    com.github.tchx84.Flatseal \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    it.mijorus.gearlever \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    io.freetubeapp.FreeTube \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    org.signal.Signal \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    io.github.Foldex.AdwSteamGtk \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    page.codeberg.libre_menu_editor.LibreMenuEditor \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    io.unom.punktfunk\n' >> /bootstrap/install-flatpaks.sh && \
+    printf 'rm -f /etc/xdg/autostart/install-flatpaks.desktop\n' >> /bootstrap/install-flatpaks.sh
 
 RUN chmod +x /bootstrap/install-flatpaks.sh
 
-RUN cat << 'EOF' > /etc/xdg/autostart/install-flatpaks.desktop
-[Desktop Entry]
-Type=Application
-Name=Install Missing Flatpaks
-Exec=/bootstrap/install-flatpaks.sh
-Terminal=false
-NoDisplay=true
-EOF
+RUN printf '[Desktop Entry]\nType=Application\nName=Install Missing Flatpaks\nExec=/bootstrap/install-flatpaks.sh\nTerminal=false\nNoDisplay=true\n' > /etc/xdg/autostart/install-flatpaks.desktop
 
 
 # ============================================================
