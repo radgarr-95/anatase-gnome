@@ -14,7 +14,7 @@ RUN dnf -y install \
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
 # ============================================================
-# SYSTEM PACKAGES (INCLUDING ALL AVAILABLE NATIVE APPS)
+# SYSTEM PACKAGES (INCLUDING NATIVE APPS)
 # ============================================================
 
 RUN dnf -y --setopt=install_weak_deps=False install \
@@ -49,6 +49,8 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     file \
     bzip2 \
     unzip \
+    # Media Writer
+    mediawriter \
     # Hardware and device support
     liquidctl \
     fprintd-pam \
@@ -198,7 +200,9 @@ RUN printf '#!/bin/bash\n' > /bootstrap/install-flatpaks.sh && \
     printf '    io.freetubeapp.FreeTube \\\n' >> /bootstrap/install-flatpaks.sh && \
     printf '    org.signal.Signal \\\n' >> /bootstrap/install-flatpaks.sh && \
     printf '    io.github.Foldex.AdwSteamGtk \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    page.codeberg.libre_menu_editor.LibreMenuEditor\n' >> /bootstrap/install-flatpaks.sh
+    printf '    page.codeberg.libre_menu_editor.LibreMenuEditor \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    com.github.iwalton3.jellyfin-media-player\n' >> /bootstrap/install-flatpaks.sh && \
+    printf 'flatpak install --user --assumeyes https://flatpak.unom.io/io.unom.punktfunk.flatpakref\n' >> /bootstrap/install-flatpaks.sh
 
 RUN chmod +x /bootstrap/install-flatpaks.sh
 
@@ -214,11 +218,9 @@ RUN chsh -s /usr/bin/fish
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
 
-
 # ============================================================
 # CLEANUP (LEAVE THIS HERE)
 # ============================================================
 
 RUN rm -rf /var && \
     mkdir -p /var/tmp 
-
