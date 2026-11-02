@@ -14,7 +14,7 @@ RUN dnf -y install \
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
 # ============================================================
-# SYSTEM PACKAGES (INCLUDING NATIVE APPS)
+# SYSTEM PACKAGES (INCLUDING NATIVE APPS & WGET)
 # ============================================================
 
 RUN dnf -y --setopt=install_weak_deps=False install \
@@ -40,9 +40,10 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     ripgrep \
     zoxide \
     uv \
-    # System utilities
+    # System utilities & downloaders
     procps-ng \
     curl \
+    wget \
     git \
     gcc \
     make \
@@ -158,20 +159,18 @@ RUN printf '#!/bin/bash\n' > /bootstrap/build-extensions.sh && \
     printf 'install -d /usr/share/gnome-shell/extensions\n' >> /bootstrap/build-extensions.sh && \
     printf 'cp -a /bootstrap/hanabi/home/.local/share/gnome-shell/extensions/hanabi-extension@jeffshee.github.io /usr/share/gnome-shell/extensions/\n' >> /bootstrap/build-extensions.sh && \
     \
-    # 2. Burn-My-Windows (Dedicated folder & properly placed into UUID directory)
-    printf 'mkdir -p /bootstrap/burn-my-windows\n' >> /bootstrap/build-extensions.sh && \
-    printf 'git clone --depth 1 https://github.com/Schneegans/Burn-My-Windows.git /bootstrap/burn-my-windows/src\n' >> /bootstrap/build-extensions.sh && \
-    printf 'mkdir -p /usr/share/gnome-shell/extensions/burn-my-windows@schneegans.com\n' >> /bootstrap/build-extensions.sh && \
-    printf 'cp -a /bootstrap/burn-my-windows/src/src/* /usr/share/gnome-shell/extensions/burn-my-windows@schneegans.com/\n' >> /bootstrap/build-extensions.sh && \
+    # 2. Burn-My-Windows (Downloaded via wget official zip release)
+    printf 'mkdir -p /bootstrap/burn-my-windows /usr/share/gnome-shell/extensions/burn-my-windows@schneegans.com\n' >> /bootstrap/build-extensions.sh && \
+    printf 'wget https://github.com/Schneegans/Burn-My-Windows/releases/latest/download/burn-my-windows@schneegans.github.com.zip -O /bootstrap/burn-my-windows/bmw.zip\n' >> /bootstrap/build-extensions.sh && \
+    printf 'unzip -q /bootstrap/burn-my-windows/bmw.zip -d /usr/share/gnome-shell/extensions/burn-my-windows@schneegans.com/\n' >> /bootstrap/build-extensions.sh && \
     \
-    # 3. O-Tiling (Dedicated folder & properly placed into UUID directory)
-    printf 'mkdir -p /bootstrap/o-tiling\n' >> /bootstrap/build-extensions.sh && \
-    printf 'git clone --depth 1 https://github.com/oliwebd/o-tiling.git /bootstrap/o-tiling/src\n' >> /bootstrap/build-extensions.sh && \
-    printf 'mkdir -p /usr/share/gnome-shell/extensions/o-tiling@oliwebd.github.com\n' >> /bootstrap/build-extensions.sh && \
-    printf 'cp -a /bootstrap/o-tiling/src/* /usr/share/gnome-shell/extensions/o-tiling@oliwebd.github.com/\n' >> /bootstrap/build-extensions.sh && \
+    # 3. O-Tiling (Downloaded via official API release zip)
+    printf 'mkdir -p /bootstrap/o-tiling /usr/share/gnome-shell/extensions/o-tiling@oliwebd.github.com\n' >> /bootstrap/build-extensions.sh && \
+    printf 'curl -s https://api.github.com/repos/oliwebd/o-tiling/releases/latest | grep "browser_download_url.*zip" | cut -d : -f 2,3 | tr -d \\x27"\\x27 | xargs -I {} curl -sL {} -o /tmp/otiling.zip\n' >> /bootstrap/build-extensions.sh && \
+    printf 'unzip -q /tmp/otiling.zip -d /usr/share/gnome-shell/extensions/o-tiling@oliwebd.github.com/\n' >> /bootstrap/build-extensions.sh && \
     \
-    # Cleanup all separate temporary bootstrap folders
-    printf 'rm -rf /bootstrap/hanabi /bootstrap/burn-my-windows /bootstrap/o-tiling\n' >> /bootstrap/build-extensions.sh
+    # Cleanup all separate temporary bootstrap folders and archives
+    printf 'rm -rf /bootstrap/hanabi /bootstrap/burn-my-windows /bootstrap/o-tiling /tmp/otiling.zip\n' >> /bootstrap/build-extensions.sh
 
 RUN chmod +x /bootstrap/build-extensions.sh && /bootstrap/build-extensions.sh
 
@@ -179,6 +178,8 @@ RUN chmod +x /bootstrap/build-extensions.sh && /bootstrap/build-extensions.sh
 # ============================================================
 # FIRST-BOOT HOMEBREW & BOLD BREW INSTALLER SETUP (/bootstrap)
 # ============================================================
+
+RUN mkdir -p /bootstrap /etc/xdg/autostart
 
 RUN printf '#!/bin/bash\n' > /bootstrap/install-brew.sh && \
     printf 'set -euo pipefail\n' >> /bootstrap/install-brew.sh && \
