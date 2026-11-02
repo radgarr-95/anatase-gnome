@@ -152,8 +152,7 @@ RUN git clone --depth 1 \
 # FIRST-BOOT HOMEBREW & BOLD BREW INSTALLER SETUP (/bootstrap)
 # ============================================================
 
-RUN mkdir -p /bootstrap
-RUN mkdir -p /etc/xdg/autostart
+RUN mkdir -p /bootstrap /etc/xdg/autostart
 
 RUN cat << 'EOF' > /bootstrap/install-brew.sh
 #!/bin/bash
@@ -230,6 +229,7 @@ RUN chsh -s /usr/bin/fish
 
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
+
 
 # ===========================================================
 # CLEANUP (LEAVE THIS HERE)
