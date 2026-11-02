@@ -145,9 +145,31 @@ RUN printf '%s\n' 'com.mitchellh.ghostty.desktop' > /etc/xdg/xdg-terminals.list
 # Fail the build early if the Ghostty desktop file is not where we expect
 RUN ls /usr/share/applications | grep -i ghostty
 
+# LAZYVIM STARTER CONFIGURATION
+# ============================================================
+
+# Clone the LazyVim starter template into /etc/skel so every new user gets it
+RUN git clone https://github.com/LazyVim/starter /etc/skel/.config/nvim && \
+    # Remove the .git folder so users can track their own config changes later if desired
+    rm -rf /etc/skel/.config/nvim/.git
+
+
 # ============================================================
 # DESKTOP ENTRIES
 # ============================================================
+
+# Manual First-Boot Setup Launcher (Runs inside Ghostty with sudo password prompt)
+RUN printf '%s\n' \
+    '[Desktop Entry]' \
+    'Name=Complete Setup' \
+    'GenericName=System Setup' \
+    'Comment=Manually run Homebrew and Flatpak first-boot installation scripts' \
+    'Exec=ghostty -e bash -c "echo \"=== Running Homebrew Setup ===\"; sudo /bootstrap/install-brew.sh; echo \"=== Running Flatpak Setup ===\"; sudo /bootstrap/install-flatpaks.sh; echo \"\nSetup complete! Press Enter to close.\"; read"' \
+    'Terminal=false' \
+    'Type=Application' \
+    'Categories=System;Settings;' \
+    'StartupNotify=true' \
+    > /usr/share/applications/complete-setup.desktop
 
 # Neovim launcher (runs inside Ghostty)
 RUN printf '%s\n' \
@@ -297,7 +319,7 @@ RUN printf '%s\n' \
     'set -euo pipefail' \
     'exec > >(tee -a /var/log/install-flatpaks.log) 2>&1' \
     'flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo' \
-    'flatpak install --system --assumeyes flathub org.localsend.localsend_app io.github.swordpuffin.rewaita com.mattjakeman.ExtensionManager io.github.flattool.Warehouse io.ente.auth com.github.vladimiry.ElectronMail io.github.kolunmi.Bazaar com.github.tchx84.Flatseal it.mijorus.gearlever io.freetubeapp.FreeTube org.signal.Signal io.github.Foldex.AdwSteamGtk page.codeberg.libre_menu_editor.LibreMenuEditor com.github.iwalton3.jellyfin-media-player io.github.ilya_zlobintsev.LACT net.jami.Jami' \
+    'flatpak install --system --assumeyes flathub org.localsend.localsend_app io.github.swordpuffin.rewaita com.mattjakeman.ExtensionManager io.github.flattool.Warehouse io.ente.auth com.github.vladimiry.ElectronMail io.github.kolunmi.Bazaar com.github.tchx84.Flatseal it.mijorus.gearlever io.freetubeapp.FreeTube org.signal.Signal io.github.Foldex.AdwSteamGtk page.codeberg.libre_menu_editor.LibreMenuEditor com.github.iwalton3.jellyfin-media-player io.github.ilya_zlobintsev.LACT net.jami.Jami page.tesk.Refine ' \
     'flatpak install --system --assumeyes https://flatpak.unom.io/io.unom.punktfunk.flatpakref' \
     > /bootstrap/install-flatpaks.sh && \
     chmod +x /bootstrap/install-flatpaks.sh
