@@ -73,6 +73,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     file \
     bzip2 \
     unzip \
+    neovim \
     # Hardware and device support
     liquidctl \
     fprintd-pam \
@@ -138,6 +139,32 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gstreamer1-plugins-bad-free \
     gstreamer1-plugin-libav \
     && dnf clean all
+
+
+# ============================================================
+# NEOVIM & LAZYVIM SETUP
+# ============================================================
+
+# 1. Clone LazyVim starter template into the default root/user configuration path
+# (Adjust or run this for your target user home directory if building for a non-root user)
+RUN git clone https://github.com/LazyVim/starter /root/.config/nvim && \
+    rm -rf /root/.config/nvim/.git
+
+# 2. Create a desktop entry so Neovim shows up in your GNOME application launcher
+RUN mkdir -p /usr/share/applications && \
+    cat << 'EOF' > /usr/share/applications/nvim.desktop
+[Desktop Entry]
+Name=Neovim
+GenericName=Text Editor
+Comment=Edit text files using Neovim
+Exec=ghostty -e nvim %F
+Terminal=false
+Type=Application
+Categories=Utility;TextEditor;Development;
+StartupNotify=true
+MimeType=text/plain;inode/directory;
+EOF
+
 
 
 # ============================================================
@@ -217,3 +244,15 @@ RUN flatpak install --system --assumeyes flathub \
     com.github.tchx84.Flatseal \
     io.github.flattool.Warehouse \
     io.github.swordpuffin.rewaita \
+    org.qbittorrent.qBittorrent \
+    it.mijorus.gearlever \
+    org.libreoffice.LibreOffice \
+    io.ente.auth \
+    io.freetubeapp.FreeTube \
+    org.videolan.VLC \
+    com.github.neithern.g4music \
+    org.signal.Signal \
+    io.github.Foldex.AdwSteamGtk \
+    org.localsend.localsend_app \
+    io.github.peazip.PeaZip \
+    com.github.vladimiry.ElectronMail
