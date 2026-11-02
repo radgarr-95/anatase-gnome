@@ -31,7 +31,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     # Terminal and shell
     ghostty \
     fish \
-    # CLI Utilities (without Yazi)
+    # CLI Utilities
     neovim \
     oh-my-posh \
     eza \
@@ -151,53 +151,60 @@ RUN git clone --depth 1 \
 # FIRST-BOOT HOMEBREW & BOLD BREW INSTALLER SETUP
 # ============================================================
 
-RUN printf '#!/bin/bash\n\
-if [ -d "/home/linuxbrew/.linuxbrew" ]; then\n\
-    exit 0\n\
-fi\n\
-useradd -m -s /bin/bash linuxbrew\n\
-mkdir -p /home/linuxbrew/bin\n\
-printf "#!/bin/bash\\n\\"\\$@\\"\\n" > /home/linuxbrew/bin/sudo\n\
-chmod +x /home/linuxbrew/bin/sudo\n\
-chown -R linuxbrew:linuxbrew /home/linuxbrew\n\
-su - linuxbrew -c '\'' \
-export PATH="/home/linuxbrew/bin:$PATH" \
-NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" && \
-NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)" \
-'\''\n\
-rm -f /etc/xdg/autostart/install-brew.desktop\n' > /usr/local/bin/install-brew.sh && \
+RUN mkdir -p /usr/local/bin /etc/xdg/autostart && \
+    cat << 'EOF' > /usr/local/bin/install-brew.sh
+#!/bin/bash
+if [ -d "/home/linuxbrew/.linuxbrew" ]; then
+    exit 0
+fi
+useradd -m -s /bin/bash linuxbrew
+mkdir -p /home/linuxbrew/bin
+printf '#!/bin/bash\n"$@"\n' > /home/linuxbrew/bin/sudo
+chmod +x /home/linuxbrew/bin/sudo
+chown -R linuxbrew:linuxbrew /home/linuxbrew
+su - linuxbrew -c '
+export PATH="/home/linuxbrew/bin:$PATH"
+NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" &&
+NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)"
+'
+rm -f /etc/xdg/autostart/install-brew.desktop
+EOF
     chmod +x /usr/local/bin/install-brew.sh
 
-RUN mkdir -p /etc/xdg/autostart && \
-    printf '[Desktop Entry]\n\
-Type=Application\n\
-Name=Install Homebrew\n\
-Exec=/usr/local/bin/install-brew.sh\n\
-Terminal=false\n\
-NoDisplay=true\n' > /etc/xdg/autostart/install-brew.desktop
+RUN cat << 'EOF' > /etc/xdg/autostart/install-brew.desktop
+[Desktop Entry]
+Type=Application
+Name=Install Homebrew
+Exec=/usr/local/bin/install-brew.sh
+Terminal=false
+NoDisplay=true
+EOF
 
 
 # ============================================================
 # FIRST-BOOT FLATPAK INSTALLER SETUP
 # ============================================================
 
-RUN printf '#!/bin/bash\n\
-flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo\n\
-flatpak install --system --assumeyes flathub \\\n\
-    org.localsend.localsend_app \\\n\
-    io.github.swordpuffin.rewaita \\\n\
-    com.mattjakeman.ExtensionManager \\\n\
-    io.github.flattool.Warehouse\n\
-rm -f /etc/xdg/autostart/install-flatpaks.desktop\n' > /usr/local/bin/install-flatpaks.sh && \
+RUN cat << 'EOF' > /usr/local/bin/install-flatpaks.sh
+#!/bin/bash
+flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak install --system --assumeyes flathub \
+    org.localsend.localsend_app \
+    io.github.swordpuffin.rewaita \
+    com.mattjakeman.ExtensionManager \
+    io.github.flattool.Warehouse
+rm -f /etc/xdg/autostart/install-flatpaks.desktop
+EOF
     chmod +x /usr/local/bin/install-flatpaks.sh
 
-RUN mkdir -p /etc/xdg/autostart && \
-    printf '[Desktop Entry]\n\
-Type=Application\n\
-Name=Install Missing Flatpaks\n\
-Exec=/usr/local/bin/install-flatpaks.sh\n\
-Terminal=false\n\
-NoDisplay=true\n' > /etc/xdg/autostart/install-flatpaks.desktop
+RUN cat << 'EOF' > /etc/xdg/autostart/install-flatpaks.desktop
+[Desktop Entry]
+Type=Application
+Name=Install Missing Flatpaks
+Exec=/usr/local/bin/install-flatpaks.sh
+Terminal=false
+NoDisplay=true
+EOF
 
 
 # ============================================================
