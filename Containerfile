@@ -28,6 +28,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gnome-shell \
     gnome-extensions-app \
     nautilus \
+    totem \
     # Terminal and shell
     ghostty \
     fish \
@@ -151,10 +152,10 @@ RUN git clone --depth 1 \
 # FIRST-BOOT HOMEBREW & BOLD BREW INSTALLER SETUP
 # ============================================================
 
-RUN mkdir -p /usr/local/bin
+RUN mkdir -p /opt/bin
 RUN mkdir -p /etc/xdg/autostart
 
-RUN cat << 'EOF' > /usr/local/bin/install-brew.sh
+RUN cat << 'EOF' > /opt/bin/install-brew.sh
 #!/bin/bash
 if [ -d "/home/linuxbrew/.linuxbrew" ]; then
     exit 0
@@ -172,13 +173,13 @@ NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Va
 rm -f /etc/xdg/autostart/install-brew.desktop
 EOF
 
-RUN chmod +x /usr/local/bin/install-brew.sh
+RUN chmod +x /opt/bin/install-brew.sh
 
 RUN cat << 'EOF' > /etc/xdg/autostart/install-brew.desktop
 [Desktop Entry]
 Type=Application
 Name=Install Homebrew
-Exec=/usr/local/bin/install-brew.sh
+Exec=/opt/bin/install-brew.sh
 Terminal=false
 NoDisplay=true
 EOF
@@ -188,7 +189,7 @@ EOF
 # FIRST-BOOT FLATPAK INSTALLER SETUP (REMAINING APPS)
 # ============================================================
 
-RUN cat << 'EOF' > /usr/local/bin/install-flatpaks.sh
+RUN cat << 'EOF' > /opt/bin/install-flatpaks.sh
 #!/bin/bash
 flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 flatpak install --system --assumeyes flathub \
@@ -204,17 +205,18 @@ flatpak install --system --assumeyes flathub \
     io.freetubeapp.FreeTube \
     org.signal.Signal \
     io.github.Foldex.AdwSteamGtk \
-    page.codeberg.libre_menu_editor.LibreMenuEditor
+    page.codeberg.libre_menu_editor.LibreMenuEditor \
+    io.unom.punktfunk
 rm -f /etc/xdg/autostart/install-flatpaks.desktop
 EOF
 
-RUN chmod +x /usr/local/bin/install-flatpaks.sh
+RUN chmod +x /opt/bin/install-flatpaks.sh
 
 RUN cat << 'EOF' > /etc/xdg/autostart/install-flatpaks.desktop
 [Desktop Entry]
 Type=Application
 Name=Install Missing Flatpaks
-Exec=/usr/local/bin/install-flatpaks.sh
+Exec=/opt/bin/install-flatpaks.sh
 Terminal=false
 NoDisplay=true
 EOF
@@ -235,3 +237,5 @@ RUN systemctl enable gdm.service && \
 
 RUN rm -rf /var && \
     mkdir -p /var/tmp 
+
+
