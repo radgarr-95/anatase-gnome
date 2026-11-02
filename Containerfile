@@ -1,4 +1,3 @@
-
 FROM i.anatase.org/base:stable
 
 # ============================================================
@@ -146,7 +145,6 @@ RUN dnf -y --setopt=install_weak_deps=False install \
 # ============================================================
 
 # 1. Clone LazyVim starter template into the default root/user configuration path
-# (Adjust or run this for your target user home directory if building for a non-root user)
 RUN git clone https://github.com/LazyVim/starter /root/.config/nvim && \
     rm -rf /root/.config/nvim/.git
 
@@ -166,14 +164,41 @@ MimeType=text/plain;inode/directory;
 EOF
 
 
+# ============================================================
+# BOLD BREW (TUI PACKAGE MANAGER)
+# ============================================================
+
+# Install using a temporary non-root user (Homebrew requirement)
+RUN useradd -m -s /bin/bash linuxbrew
+
+USER linuxbrew
+
+RUN NONINTERACTIVE=1 /bin/bash -c \
+    "$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)"
+
+USER root
+
+# Expose Bold Brew and Homebrew globally in the system PATH
+ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
+
+# Create a desktop entry to launch Bold Brew inside Ghostty
+RUN mkdir -p /usr/share/applications && \
+    cat << 'EOF' > /usr/share/applications/bold-brew.desktop
+[Desktop Entry]
+Name=Bold Brew
+GenericName=Package Manager TUI
+Comment=Modern Terminal UI for managing Homebrew packages
+Exec=ghostty -e bbrew
+Terminal=false
+Type=Application
+Categories=System;Settings;PackageManager;
+StartupNotify=true
+EOF
+
 
 # ============================================================
 # HANABI GNOME LIVE WALLPAPER EXTENSION
 # ============================================================
-
-# Build Hanabi in an isolated temporary HOME directory.
-# This avoids npm attempting to write to /root/.npm.
-# Install system-wide instead of into a temporary user account.
 
 RUN git clone --depth 1 \
     https://github.com/jeffshee/gnome-ext-hanabi.git \
@@ -189,38 +214,21 @@ RUN git clone --depth 1 \
         /usr/share/gnome-shell/extensions/ && \
     rm -rf /tmp/hanabi /tmp/hanabi-home /tmp/hanabi-npm-cache
 
-# ============================================================
-# HOMEBREW
-# ============================================================
-
-# Install Homebrew using a temporary non-root user
-RUN useradd -m -s /bin/bash linuxbrew
-
-USER linuxbrew
-
-RUN NONINTERACTIVE=1 /bin/bash -c \
-    "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-USER root
-
-# Expose Homebrew globally in the system PATH
-ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
 
 # ============================================================
 # DEFAULT SHELL
 # ============================================================
 
-# Set Fish as the default shell globally for new users
 RUN chsh -s /usr/bin/fish
+
 
 # ============================================================
 # DISPLAY MANAGER AND BOOT
 # ============================================================
 
-# GNOME remains the default desktop.
-# Phosh is available as an additional GDM session.
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
+
 
 # ============================================================
 # CLEANUP (LEAVE THIS HERE)
@@ -229,15 +237,14 @@ RUN systemctl enable gdm.service && \
 RUN rm -rf /var && \
     mkdir -p /var/tmp 
 
+
 # ============================================================
 # FLATPAK APPLICATIONS
 # ============================================================
 
-# Add Flathub system-wide
 RUN flatpak remote-add --system --if-not-exists \
     flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-# Install applications system-wide
 RUN flatpak install --system --assumeyes flathub \
     com.mattjakeman.ExtensionManager \
     io.github.kolunmi.Bazaar \
@@ -255,4 +262,5 @@ RUN flatpak install --system --assumeyes flathub \
     io.github.Foldex.AdwSteamGtk \
     org.localsend.localsend_app \
     io.github.peazip.PeaZip \
-    com.github.vladimiry.ElectronMail
+    com.github.vladimiry.ElectronMail \
+    page.codeberg.libre_menu_editor.LibreMenuEditor
