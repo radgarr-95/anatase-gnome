@@ -122,6 +122,14 @@ RUN dnf -y --setopt=install_weak_deps=False install \
 
 
 # ============================================================
+# GHOSTTY CONFIGURATION (DEFAULT TO NEOVIM)
+# ============================================================
+
+RUN mkdir -p /etc/skel/.config/ghostty && \
+    printf 'command = nvim\n' > /etc/skel/.config/ghostty/config
+
+
+# ============================================================
 # DESKTOP ENTRIES
 # ============================================================
 
@@ -153,8 +161,7 @@ RUN mkdir -p /bootstrap /etc/xdg/autostart
 
 RUN printf '#!/bin/bash\n' > /bootstrap/install-brew.sh && \
     printf 'set -euo pipefail\n' >> /bootstrap/install-brew.sh && \
-    printf 'mkdir -p /var/log/bootstrap\n' >> /bootstrap/install-brew.sh && \
-    printf 'exec > >(tee -a /var/log/bootstrap/install-brew.log) 2>&1\n' >> /bootstrap/install-brew.sh && \
+    printf 'exec > >(tee -a /tmp/install-brew.log) 2>&1\n' >> /bootstrap/install-brew.sh && \
     printf 'if [ -d "/home/linuxbrew/.linuxbrew" ]; then exit 0; fi\n' >> /bootstrap/install-brew.sh && \
     printf 'useradd -m -s /bin/bash linuxbrew\n' >> /bootstrap/install-brew.sh && \
     printf 'mkdir -p /home/linuxbrew/bin\n' >> /bootstrap/install-brew.sh && \
@@ -175,8 +182,7 @@ RUN printf '[Desktop Entry]\nType=Application\nName=Install Homebrew\nExec=/boot
 
 RUN printf '#!/bin/bash\n' > /bootstrap/install-flatpaks.sh && \
     printf 'set -euo pipefail\n' >> /bootstrap/install-flatpaks.sh && \
-    printf 'mkdir -p /var/log/bootstrap\n' >> /bootstrap/install-flatpaks.sh && \
-    printf 'exec > >(tee -a /var/log/bootstrap/install-flatpaks.log) 2>&1\n' >> /bootstrap/install-flatpaks.sh && \
+    printf 'exec > >(tee -a /tmp/install-flatpaks.log) 2>&1\n' >> /bootstrap/install-flatpaks.sh && \
     printf 'flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo\n' >> /bootstrap/install-flatpaks.sh && \
     printf 'flatpak install --system --assumeyes flathub \\\n' >> /bootstrap/install-flatpaks.sh && \
     printf '    org.localsend.localsend_app \\\n' >> /bootstrap/install-flatpaks.sh && \
@@ -209,7 +215,7 @@ RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
 
 
-# ===========================================================
+# ============================================================
 # CLEANUP (LEAVE THIS HERE)
 # ============================================================
 
