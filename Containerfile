@@ -107,19 +107,22 @@ RUN dnf -y --setopt=install_weak_deps=False install \
 
 
 # ============================================================
-# BOLD BREW (TUI PACKAGE MANAGER), NEOVIM & CLI UTILS
+# HOMEBREW, BOLD BREW & CLI UTILS
 # ============================================================
 
 # Install using a dedicated non-root user (Homebrew requirement)
 RUN useradd -m -s /bin/bash linuxbrew
 
 USER linuxbrew
+ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
 
+# 1. Install official Homebrew non-interactively (bypasses sudo prompts)
 RUN NONINTERACTIVE=1 /bin/bash -c \
-    "$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)"
+    "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# Install Neovim and requested CLI utilities via Homebrew
-RUN /home/linuxbrew/.linuxbrew/bin/brew install \
+# 2. Install Bold Brew, Neovim, and your requested CLI utilities via standard brew
+RUN brew install \
+    Valkyrie00/tap/bold-brew \
     neovim \
     oh-my-posh \
     eza \
@@ -129,14 +132,14 @@ RUN /home/linuxbrew/.linuxbrew/bin/brew install \
     yazi \
     uv
 
-# Clone LazyVim starter template directly into Homebrew's user config path
+# 3. Clone LazyVim starter template directly into Homebrew's config path
 RUN mkdir -p ~/.config && \
     git clone https://github.com/LazyVim/starter ~/.config/nvim && \
     rm -rf ~/.config/nvim/.git
 
 USER root
 
-# Expose Bold Brew and Homebrew globally in the system PATH
+# Expose Homebrew globally
 ENV PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:${PATH}"
 
 # Create desktop entries for Neovim and Bold Brew using safe printf strings
