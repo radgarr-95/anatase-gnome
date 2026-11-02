@@ -151,8 +151,10 @@ RUN git clone --depth 1 \
 # FIRST-BOOT HOMEBREW & BOLD BREW INSTALLER SETUP
 # ============================================================
 
-RUN mkdir -p /usr/local/bin /etc/xdg/autostart && \
-    cat << 'EOF' > /usr/local/bin/install-brew.sh
+RUN mkdir -p /usr/local/bin
+RUN mkdir -p /etc/xdg/autostart
+
+RUN cat << 'EOF' > /usr/local/bin/install-brew.sh
 #!/bin/bash
 if [ -d "/home/linuxbrew/.linuxbrew" ]; then
     exit 0
@@ -169,7 +171,8 @@ NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Va
 '
 rm -f /etc/xdg/autostart/install-brew.desktop
 EOF
-    chmod +x /usr/local/bin/install-brew.sh
+
+RUN chmod +x /usr/local/bin/install-brew.sh
 
 RUN cat << 'EOF' > /etc/xdg/autostart/install-brew.desktop
 [Desktop Entry]
@@ -204,7 +207,8 @@ flatpak install --system --assumeyes flathub \
     page.codeberg.libre_menu_editor.LibreMenuEditor
 rm -f /etc/xdg/autostart/install-flatpaks.desktop
 EOF
-    chmod +x /usr/local/bin/install-flatpaks.sh
+
+RUN chmod +x /usr/local/bin/install-flatpaks.sh
 
 RUN cat << 'EOF' > /etc/xdg/autostart/install-flatpaks.desktop
 [Desktop Entry]
@@ -225,8 +229,9 @@ RUN chsh -s /usr/bin/fish
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
 
+# ============================================================
+# CLEANUP (LEAVE THIS HERE)
+# ============================================================
 
-# ============================================================
-# SAFE CLEANUP
-# ============================================================
-RUN rm -rf /var/cache/dnf/* /var/log/* /var/tmp/*
+RUN rm -rf /var && \
+    mkdir -p /var/tmp 
