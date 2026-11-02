@@ -149,13 +149,13 @@ RUN git clone --depth 1 \
 
 
 # ============================================================
-# FIRST-BOOT HOMEBREW & BOLD BREW INSTALLER SETUP
+# FIRST-BOOT HOMEBREW & BOLD BREW INSTALLER SETUP (/bootstrap)
 # ============================================================
 
-RUN mkdir -p /opt/bin
+RUN mkdir -p /bootstrap
 RUN mkdir -p /etc/xdg/autostart
 
-RUN cat << 'EOF' > /opt/bin/install-brew.sh
+RUN cat << 'EOF' > /bootstrap/install-brew.sh
 #!/bin/bash
 if [ -d "/home/linuxbrew/.linuxbrew" ]; then
     exit 0
@@ -173,23 +173,23 @@ NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Va
 rm -f /etc/xdg/autostart/install-brew.desktop
 EOF
 
-RUN chmod +x /opt/bin/install-brew.sh
+RUN chmod +x /bootstrap/install-brew.sh
 
 RUN cat << 'EOF' > /etc/xdg/autostart/install-brew.desktop
 [Desktop Entry]
 Type=Application
 Name=Install Homebrew
-Exec=/opt/bin/install-brew.sh
+Exec=/bootstrap/install-brew.sh
 Terminal=false
 NoDisplay=true
 EOF
 
 
 # ============================================================
-# FIRST-BOOT FLATPAK INSTALLER SETUP (REMAINING APPS)
+# FIRST-BOOT FLATPAK INSTALLER SETUP (/bootstrap)
 # ============================================================
 
-RUN cat << 'EOF' > /opt/bin/install-flatpaks.sh
+RUN cat << 'EOF' > /bootstrap/install-flatpaks.sh
 #!/bin/bash
 flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 flatpak install --system --assumeyes flathub \
@@ -210,13 +210,13 @@ flatpak install --system --assumeyes flathub \
 rm -f /etc/xdg/autostart/install-flatpaks.desktop
 EOF
 
-RUN chmod +x /opt/bin/install-flatpaks.sh
+RUN chmod +x /bootstrap/install-flatpaks.sh
 
 RUN cat << 'EOF' > /etc/xdg/autostart/install-flatpaks.desktop
 [Desktop Entry]
 Type=Application
 Name=Install Missing Flatpaks
-Exec=/opt/bin/install-flatpaks.sh
+Exec=/bootstrap/install-flatpaks.sh
 Terminal=false
 NoDisplay=true
 EOF
@@ -231,11 +231,10 @@ RUN chsh -s /usr/bin/fish
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
 
-# ============================================================
+# ===========================================================
 # CLEANUP (LEAVE THIS HERE)
 # ============================================================
 
 RUN rm -rf /var && \
     mkdir -p /var/tmp 
-
 
