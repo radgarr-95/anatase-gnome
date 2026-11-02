@@ -211,8 +211,10 @@ RUN set -eux; \
     }; \
     wget -q -O /tmp/bmw.zip "https://github.com/Schneegans/Burn-My-Windows/releases/latest/download/burn-my-windows@schneegans.github.com.zip"; \
     install_ext /tmp/bmw.zip; \
-    # Fixed: Use GitHub's tags/latest download redirect or add a User-Agent to curl
-    wget -q -O /tmp/otiling.zip "https://github.com/oliwebd/o-tiling/releases/latest/download/o-tiling@oliwebd.github.com.zip"; \
+    # Dynamically fetch the correct versioned zip URL for o-tiling using GitHub API with a User-Agent
+    url=$(curl -sSL -H "User-Agent: containerfile-builder" https://api.github.com/repos/oliwebd/o-tiling/releases/latest | grep -o '"browser_download_url": *"[^"]*o-tiling[^"]*\.zip"' | head -n1 | cut -d'"' -f4); \
+    test -n "$url"; \
+    wget -q -O /tmp/otiling.zip "$url"; \
     install_ext /tmp/otiling.zip; \
     rm -f /tmp/*.zip; \
     echo "Installed extensions:"; ls "$EXT"
