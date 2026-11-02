@@ -211,9 +211,8 @@ RUN set -eux; \
     }; \
     wget -q -O /tmp/bmw.zip "https://github.com/Schneegans/Burn-My-Windows/releases/latest/download/burn-my-windows@schneegans.github.com.zip"; \
     install_ext /tmp/bmw.zip; \
-    url=$(curl -fsSL https://api.github.com/repos/oliwebd/o-tiling/releases/latest | grep -o '"browser_download_url": *"[^"]*\.zip"' | head -n1 | cut -d'"' -f4); \
-    test -n "$url"; \
-    wget -q -O /tmp/otiling.zip "$url"; \
+    # Fixed: Use GitHub's tags/latest download redirect or add a User-Agent to curl
+    wget -q -O /tmp/otiling.zip "https://github.com/oliwebd/o-tiling/releases/latest/download/o-tiling@oliwebd.github.com.zip"; \
     install_ext /tmp/otiling.zip; \
     rm -f /tmp/*.zip; \
     echo "Installed extensions:"; ls "$EXT"
