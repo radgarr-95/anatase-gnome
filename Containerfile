@@ -170,8 +170,7 @@ RUN printf '#!/bin/bash\n' > /bootstrap/install-brew.sh && \
     printf 'printf "#!/bin/bash\\n\\"\\$@\\"\\n" > /home/linuxbrew/bin/sudo\n' >> /bootstrap/install-brew.sh && \
     printf 'chmod +x /home/linuxbrew/bin/sudo\n' >> /bootstrap/install-brew.sh && \
     printf 'chown -R linuxbrew:linuxbrew /home/linuxbrew\n' >> /bootstrap/install-brew.sh && \
-    printf 'su - linuxbrew -c "export PATH=\\"/home/linuxbrew/bin:\\$PATH\\"; NONINTERACTIVE=1 /bin/bash -c \\"\\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\\" && NONINTERACTIVE=1 /bin/bash -c \\"\\$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)\\""\n' >> /bootstrap/install-brew.sh && \
-    printf 'rm -f /etc/xdg/autostart/install-brew.desktop\n' >> /bootstrap/install-brew.sh
+    printf 'su - linuxbrew -c "export PATH=\\"/home/linuxbrew/bin:\\$PATH\\"; NONINTERACTIVE=1 /bin/bash -c \\"\\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\\" && NONINTERACTIVE=1 /bin/bash -c \\"\\$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)\\""\n' >> /bootstrap/install-brew.sh
 
 RUN chmod +x /bootstrap/install-brew.sh
 
@@ -199,8 +198,7 @@ RUN printf '#!/bin/bash\n' > /bootstrap/install-flatpaks.sh && \
     printf '    io.freetubeapp.FreeTube \\\n' >> /bootstrap/install-flatpaks.sh && \
     printf '    org.signal.Signal \\\n' >> /bootstrap/install-flatpaks.sh && \
     printf '    io.github.Foldex.AdwSteamGtk \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    page.codeberg.libre_menu_editor.LibreMenuEditor\n' >> /bootstrap/install-flatpaks.sh && \
-    printf 'rm -f /etc/xdg/autostart/install-flatpaks.desktop\n' >> /bootstrap/install-flatpaks.sh
+    printf '    page.codeberg.libre_menu_editor.LibreMenuEditor\n' >> /bootstrap/install-flatpaks.sh
 
 RUN chmod +x /bootstrap/install-flatpaks.sh
 
