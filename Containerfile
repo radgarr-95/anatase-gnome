@@ -1,4 +1,3 @@
-
 FROM i.anatase.org/base:stable
 
 # ============================================================
@@ -159,13 +158,13 @@ RUN printf '#!/bin/bash\n' > /bootstrap/build-extensions.sh && \
     printf 'install -d /usr/share/gnome-shell/extensions\n' >> /bootstrap/build-extensions.sh && \
     printf 'cp -a /bootstrap/hanabi/home/.local/share/gnome-shell/extensions/hanabi-extension@jeffshee.github.io /usr/share/gnome-shell/extensions/\n' >> /bootstrap/build-extensions.sh && \
     \
-    # 2. Burn-My-Windows (Dedicated folder)
+    # 2. Burn-My-Windows (Dedicated folder & properly placed into UUID directory)
     printf 'mkdir -p /bootstrap/burn-my-windows\n' >> /bootstrap/build-extensions.sh && \
     printf 'git clone --depth 1 https://github.com/Schneegans/Burn-My-Windows.git /bootstrap/burn-my-windows/src\n' >> /bootstrap/build-extensions.sh && \
     printf 'mkdir -p /usr/share/gnome-shell/extensions/burn-my-windows@schneegans.com\n' >> /bootstrap/build-extensions.sh && \
     printf 'cp -a /bootstrap/burn-my-windows/src/src/* /usr/share/gnome-shell/extensions/burn-my-windows@schneegans.com/\n' >> /bootstrap/build-extensions.sh && \
     \
-    # 3. O-Tiling (Dedicated folder)
+    # 3. O-Tiling (Dedicated folder & properly placed into UUID directory)
     printf 'mkdir -p /bootstrap/o-tiling\n' >> /bootstrap/build-extensions.sh && \
     printf 'git clone --depth 1 https://github.com/oliwebd/o-tiling.git /bootstrap/o-tiling/src\n' >> /bootstrap/build-extensions.sh && \
     printf 'mkdir -p /usr/share/gnome-shell/extensions/o-tiling@oliwebd.github.com\n' >> /bootstrap/build-extensions.sh && \
@@ -239,8 +238,6 @@ RUN chsh -s /usr/bin/fish
 
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
-
-
 
 # ============================================================
 # CLEANUP (LEAVE THIS HERE)
