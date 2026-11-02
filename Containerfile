@@ -141,15 +141,17 @@ RUN dnf -y --setopt=install_weak_deps=False install \
 
 
 # ============================================================
-# NEOVIM & LAZYVIM SETUP
+# NEOVIM & LAZYVIM SETUP (Non-Root User)
 # ============================================================
 
-# 1. Create config directory and clone LazyVim starter template
-RUN mkdir -p /root/.config && \
-    git clone https://github.com/LazyVim/starter /root/.config/nvim && \
-    rm -rf /root/.config/nvim/.git
+# 1. Create a dedicated non-root developer user
+RUN useradd -m -s /bin/bash developer
 
-# 2. Create a desktop entry so Neovim shows up in your GNOME application launcher
+# 2. Clone LazyVim starter template into the developer's home directory
+RUN su - developer -c "git clone https://github.com/LazyVim/starter ~/.config/nvim && \
+    rm -rf ~/.config/nvim/.git"
+
+# 3. Create a desktop entry for Neovim (launching via Ghostty)
 RUN mkdir -p /usr/share/applications && \
     cat << 'EOF' > /usr/share/applications/nvim.desktop
 [Desktop Entry]
@@ -163,6 +165,7 @@ Categories=Utility;TextEditor;Development;
 StartupNotify=true
 MimeType=text/plain;inode/directory;
 EOF
+
 
 
 # ============================================================
