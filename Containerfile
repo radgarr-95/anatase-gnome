@@ -130,11 +130,13 @@ RUN mkdir -p /etc/skel/.config/ghostty && \
 
 
 # ============================================================
-# DESKTOP ENTRIES
+# DESKTOP ENTRIES (BOLD BREW & NEOVIM OVERRIDE)
 # ============================================================
 
 RUN mkdir -p /usr/share/applications && \
     printf '[Desktop Entry]\nName=Bold Brew\nGenericName=Package Manager TUI\nComment=Modern Terminal UI for managing Homebrew packages\nExec=ghostty -e bbrew\nTerminal=false\nType=Application\nCategories=System;Settings;PackageManager;\nStartupNotify=true\n' > /usr/share/applications/bold-brew.desktop
+
+RUN printf '[Desktop Entry]\nName=Neovim\nGenericName=Text Editor\nComment=Edit text files in Ghostty\nExec=ghostty -e nvim\nTerminal=false\nType=Application\nCategories=Utility;TextEditor;\nStartupNotify=true\n' > /usr/share/applications/nvim.desktop
 
 
 # ============================================================
