@@ -163,17 +163,18 @@ RUN printf '%s\n' \
     'StartupNotify=true' \
     > /usr/share/applications/nvim.desktop
 
-# Decky Loader installer (Exec has no pipe support, so wrap in sh -c)
+# Decky Loader installer (Runs inside Ghostty)
 RUN printf '%s\n' \
     '[Desktop Entry]' \
     'Name=Install Decky Loader' \
     'GenericName=Plugin Loader' \
     'Comment=Install the official Decky plugin loader' \
-    'Exec=sh -c "curl -L https://github.com/SteamDeckHomebrew/decky-installer/releases/latest/download/install_release.sh | sh"' \
-    'Terminal=true' \
+    'Exec=ghostty -e bash -c "curl -L github.com/SteamDeckHomebrew/decky-installer/re... | sh; echo Press Enter to close; read"' \
+    'Terminal=false' \
     'Type=Application' \
     'Categories=System;' \
     > /usr/share/applications/install-decky.desktop
+
 
 # Bold Brew menu entry (shipped in the image; the binary arrives at first boot)
 RUN printf '%s\n' \
@@ -330,9 +331,11 @@ RUN sed -i 's|^SHELL=.*|SHELL=/usr/bin/fish|' /etc/default/useradd && \
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
 
-# ============================================================
-# CLEANUP (LEAVE THIS HERE)
-# ============================================================
+#============================================================
+#CLEANUP (LEAVE THIS HERE)
+#============================================================
 
-RUN rm -rf /var && \
-    mkdir -p /var/tmp
+RUN rm -rf /var/ && \
+mkdir -p /var/tmp /var/log /var/lib /var
+
+
