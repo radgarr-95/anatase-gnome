@@ -109,7 +109,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     vlc \
     g4music \
     peazip \
-    # Hanabi build dependencies
+    # Build dependencies for extensions
     meson \
     ninja-build \
     nodejs \
@@ -132,29 +132,37 @@ RUN mkdir -p /etc/skel/.config/ghostty && \
 
 
 # ============================================================
-# DESKTOP ENTRIES (BOLD BREW & NEOVIM OVERRIDE)
+# DESKTOP ENTRIES (NEOVIM OVERRIDE & DECKY)
 # ============================================================
 
 RUN mkdir -p /usr/share/applications && \
-    printf '[Desktop Entry]\nName=Bold Brew\nGenericName=Package Manager TUI\nComment=Modern Terminal UI for managing Homebrew packages\nExec=ghostty -e bbrew\nTerminal=false\nType=Application\nCategories=System;Settings;PackageManager;\nStartupNotify=true\n' > /usr/share/applications/bold-brew.desktop
+    printf '[Desktop Entry]\nName=Neovim\nGenericName=Text Editor\nComment=Edit text files in Ghostty\nExec=ghostty -e nvim\nTerminal=false\nType=Application\nCategories=Utility;TextEditor;\nStartupNotify=true\n' > /usr/share/applications/nvim.desktop
 
-RUN printf '[Desktop Entry]\nName=Neovim\nGenericName=Text Editor\nComment=Edit text files in Ghostty\nExec=ghostty -e nvim\nTerminal=false\nType=Application\nCategories=Utility;TextEditor;\nStartupNotify=true\n' > /usr/share/applications/nvim.desktop
+RUN printf '[Desktop Entry]\nName=Install Decky Loader\nGenericName=Plugin Loader\nComment=Install the official Decky plugin loader\nExec=curl -L https://github.com/SteamDeckHomebrew/decky-installer/releases/latest/download/install_release.sh | sh\nTerminal=true\nType=Application\nCategories=System;\n' > /usr/share/applications/install-decky.desktop
 
 
 # ============================================================
-# HANABI EXTENSION BUILD SCRIPT (EXECUTED DURING BUILD)
+# EXTENSIONS BUILD & INSTALL SCRIPT (HANABI, BURN-MY-WINDOWS, O-TILING)
 # ============================================================
 
-RUN printf '#!/bin/bash\n' > /tmp/build-hanabi.sh && \
-    printf 'set -euo pipefail\n' >> /tmp/build-hanabi.sh && \
-    printf 'git clone --depth 1 https://github.com/jeffshee/gnome-ext-hanabi.git /tmp/hanabi\n' >> /tmp/build-hanabi.sh && \
-    printf 'mkdir -p /tmp/hanabi-home /tmp/hanabi-npm-cache\n' >> /tmp/build-hanabi.sh && \
-    printf 'HOME=/tmp/hanabi-home npm_config_cache=/tmp/hanabi-npm-cache make -C /tmp/hanabi install\n' >> /tmp/build-hanabi.sh && \
-    printf 'install -d /usr/share/gnome-shell/extensions\n' >> /tmp/build-hanabi.sh && \
-    printf 'cp -a /tmp/hanabi-home/.local/share/gnome-shell/extensions/hanabi-extension@jeffshee.github.io /usr/share/gnome-shell/extensions/\n' >> /tmp/build-hanabi.sh && \
-    printf 'rm -rf /tmp/hanabi /tmp/hanabi-home /tmp/hanabi-npm-cache\n' >> /tmp/build-hanabi.sh
+RUN printf '#!/bin/bash\n' > /tmp/build-extensions.sh && \
+    printf 'set -euo pipefail\n' >> /tmp/build-extensions.sh && \
+    # Hanabi
+    printf 'git clone --depth 1 https://github.com/jeffshee/gnome-ext-hanabi.git /tmp/hanabi\n' >> /tmp/build-extensions.sh && \
+    printf 'mkdir -p /tmp/hanabi-home /tmp/hanabi-npm-cache\n' >> /tmp/build-extensions.sh && \
+    printf 'HOME=/tmp/hanabi-home npm_config_cache=/tmp/hanabi-npm-cache make -C /tmp/hanabi install\n' >> /tmp/build-extensions.sh && \
+    printf 'install -d /usr/share/gnome-shell/extensions\n' >> /tmp/build-extensions.sh && \
+    printf 'cp -a /tmp/hanabi-home/.local/share/gnome-shell/extensions/hanabi-extension@jeffshee.github.io /usr/share/gnome-shell/extensions/\n' >> /tmp/build-extensions.sh && \
+    # Burn-My-Windows
+    printf 'git clone --depth 1 https://github.com/Schneegans/Burn-My-Windows.git /tmp/burn-my-windows\n' >> /tmp/build-extensions.sh && \
+    printf 'cp -a /tmp/burn-my-windows/burn-my-windows@schneegans.github.com /usr/share/gnome-shell/extensions/\n' >> /tmp/build-extensions.sh && \
+    # O-Tiling
+    printf 'git clone --depth 1 https://github.com/oliwebd/o-tiling.git /tmp/o-tiling\n' >> /tmp/build-extensions.sh && \
+    printf 'cp -a /tmp/o-tiling /usr/share/gnome-shell/extensions/o-tiling@oliwebd.github.com\n' >> /tmp/build-extensions.sh && \
+    # Cleanup temp files
+    printf 'rm -rf /tmp/hanabi /tmp/hanabi-home /tmp/hanabi-npm-cache /tmp/burn-my-windows /tmp/o-tiling\n' >> /tmp/build-extensions.sh
 
-RUN chmod +x /tmp/build-hanabi.sh && /tmp/build-hanabi.sh && rm -f /tmp/build-hanabi.sh
+RUN chmod +x /tmp/build-extensions.sh && /tmp/build-extensions.sh && rm -f /tmp/build-extensions.sh
 
 
 # ============================================================
@@ -172,7 +180,9 @@ RUN printf '#!/bin/bash\n' > /bootstrap/install-brew.sh && \
     printf 'printf "#!/bin/bash\\n\\"\\$@\\"\\n" > /home/linuxbrew/bin/sudo\n' >> /bootstrap/install-brew.sh && \
     printf 'chmod +x /home/linuxbrew/bin/sudo\n' >> /bootstrap/install-brew.sh && \
     printf 'chown -R linuxbrew:linuxbrew /home/linuxbrew\n' >> /bootstrap/install-brew.sh && \
-    printf 'su - linuxbrew -c "export PATH=\\"/home/linuxbrew/bin:\\$PATH\\"; NONINTERACTIVE=1 /bin/bash -c \\"\\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\\" && NONINTERACTIVE=1 /bin/bash -c \\"\\$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)\\""\n' >> /bootstrap/install-brew.sh
+    printf 'su - linuxbrew -c "export PATH=\\"/home/linuxbrew/bin:\\$PATH\\"; NONINTERACTIVE=1 /bin/bash -c \\"\\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\\" && NONINTERACTIVE=1 /bin/bash -c \\"\\$(curl -fsSL https://raw.githubusercontent.com/Valkyrie00/bold-brew/main/install.sh)\\""\n' >> /bootstrap/install-brew.sh && \
+    printf 'mkdir -p ~/.local/share/applications\n' >> /bootstrap/install-brew.sh && \
+    printf 'printf "[Desktop Entry]\\nName=Bold Brew\\nGenericName=Package Manager TUI\\nComment=Modern Terminal UI for managing Homebrew packages\\nExec=ghostty -e bbrew\\nTerminal=false\\nType=Application\\nCategories=System;Settings;PackageManager;\\nStartupNotify=true\\n" > ~/.local/share/applications/bold-brew.desktop\n' >> /bootstrap/install-brew.sh
 
 RUN chmod +x /bootstrap/install-brew.sh
 
@@ -201,7 +211,9 @@ RUN printf '#!/bin/bash\n' > /bootstrap/install-flatpaks.sh && \
     printf '    org.signal.Signal \\\n' >> /bootstrap/install-flatpaks.sh && \
     printf '    io.github.Foldex.AdwSteamGtk \\\n' >> /bootstrap/install-flatpaks.sh && \
     printf '    page.codeberg.libre_menu_editor.LibreMenuEditor \\\n' >> /bootstrap/install-flatpaks.sh && \
-    printf '    com.github.iwalton3.jellyfin-media-player\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    com.github.iwalton3.jellyfin-media-player \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    io.github.ilya_zlobintsev.LACT \\\n' >> /bootstrap/install-flatpaks.sh && \
+    printf '    net.jami.Jami\n' >> /bootstrap/install-flatpaks.sh && \
     printf 'flatpak install --user --assumeyes https://flatpak.unom.io/io.unom.punktfunk.flatpakref\n' >> /bootstrap/install-flatpaks.sh
 
 RUN chmod +x /bootstrap/install-flatpaks.sh
@@ -218,9 +230,8 @@ RUN chsh -s /usr/bin/fish
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
 
-# ============================================================
-# CLEANUP (LEAVE THIS HERE)
-# ============================================================
 
-RUN rm -rf /var && \
-    mkdir -p /var/tmp 
+# ============================================================
+# SAFE CLEANUP
+# ============================================================
+RUN rm -rf /var/cache/dnf/* /var/log/* /var/tmp/*
