@@ -276,6 +276,7 @@ RUN printf '%s\n' \
     '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"' \
     'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' \
     'brew tap Valkyrie00/homebrew-bbrew' \
+    'brew trust Valkyrie00/bbrew' \
     'brew install bbrew' \
     > /bootstrap/brew-as-user.sh
 
