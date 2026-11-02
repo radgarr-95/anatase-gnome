@@ -4,40 +4,7 @@ FROM i.anatase.org/base:stable
 # REPOSITORIES
 # ============================================================
 
-# Add Ghostty Copr repo manually
-RUN printf '[copr-scottames-ghostty]\n\
-name=Copr repo for ghostty\n\
-baseurl=https://download.copr.fedorainfracloud.org/results/scottames/ghostty/fedora-45-$basearch/\n\
-type=rpm-md\n\
-skip_if_unavailable=1\n\
-gpgcheck=1\n\
-gpgkey=https://download.copr.fedorainfracloud.org/results/scottames/ghostty/pubkey.gpg\n\
-repo_gpgcheck=0\n\
-enabled=1\n' > /etc/yum.repos.d/scottames-ghostty.repo
-
-# Add CoolerControl Copr repo manually
-RUN printf '[copr-codifryed-coolercontrol]\n\
-name=Copr repo for coolercontrol\n\
-baseurl=https://download.copr.fedorainfracloud.org/results/codifryed/coolercontrol/fedora-45-$basearch/\n\
-type=rpm-md\n\
-skip_if_unavailable=1\n\
-gpgcheck=1\n\
-gpgkey=https://download.copr.fedorainfracloud.org/results/codifryed/coolercontrol/pubkey.gpg\n\
-repo_gpgcheck=0\n\
-enabled=1\n' > /etc/yum.repos.d/codifryed-coolercontrol.repo
-
-# Add Zen Browser Copr repo manually
-RUN printf '[copr-zen-browser]\n\
-name=Copr repo for zen browser\n\
-baseurl=https://download.copr.fedorainfracloud.org/results/rmnscnc/zen-browser/fedora-45-$basearch/\n\
-type=rpm-md\n\
-skip_if_unavailable=1\n\
-gpgcheck=1\n\
-gpgkey=https://download.copr.fedorainfracloud.org/results/rmnscnc/zen-browser/pubkey.gpg\n\
-repo_gpgcheck=0\n\
-enabled=1\n' > /etc/yum.repos.d/zen-browser.repo
-
-# Add Terra repository for Mission Center
+# Add Terra repository (provides Ghostty, CoolerControl, Zen Browser, Mission Center, etc.)
 RUN curl -fsSL https://github.com/terrapkg/subatomic-repos/raw/main/terra.repo \
     -o /etc/yum.repos.d/terra.repo
 
@@ -121,7 +88,7 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     phosh \
     phoc \
     phosh-mobile-settings \
-    # Additional applications
+    # Additional applications (from Terra / base)
     coolercontrol \
     mission-center \
     zen-browser \
@@ -147,9 +114,10 @@ RUN dnf -y --setopt=install_weak_deps=False install \
 # 1. Create a dedicated non-root developer user
 RUN useradd -m -s /bin/bash developer
 
-# 2. Clone LazyVim starter template into the developer's home directory
-RUN su - developer -c "git clone https://github.com/LazyVim/starter ~/.config/nvim && \
-    rm -rf ~/.config/nvim/.git"
+# 2. Clone LazyVim starter template into the developer's home directory safely using runuser
+RUN runuser -u developer -- mkdir -p /home/developer/.config && \
+    runuser -u developer -- git clone https://github.com/LazyVim/starter /home/developer/.config/nvim && \
+    runuser -u developer -- rm -rf /home/developer/.config/nvim/.git
 
 # 3. Create a desktop entry for Neovim (launching via Ghostty)
 RUN mkdir -p /usr/share/applications && \
@@ -165,7 +133,6 @@ Categories=Utility;TextEditor;Development;
 StartupNotify=true
 MimeType=text/plain;inode/directory;
 EOF
-
 
 
 # ============================================================
