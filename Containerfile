@@ -186,17 +186,17 @@ RUN printf '%s\n' \
     > /usr/share/applications/nvim.desktop
 
 # Decky Loader installer (Runs inside Ghostty)
+
 RUN printf '%s\n' \
     '[Desktop Entry]' \
     'Name=Install Decky Loader' \
     'GenericName=Plugin Loader' \
     'Comment=Install the official Decky plugin loader' \
-    'Exec=ghostty -e bash -c "curl -L github.com/SteamDeckHomebrew/decky-installer/re... | sh; echo Press Enter to close; read"' \
+    'Exec=ghostty -e bash -c "curl -L https://github.com/SteamDeckHomebrew/decky-installer/releases/latest/download/install_release.sh | bash; echo Press Enter to close; read"' \
     'Terminal=false' \
     'Type=Application' \
     'Categories=System;' \
     > /usr/share/applications/install-decky.desktop
-
 
 # Bold Brew menu entry (shipped in the image; the binary arrives at first boot)
 RUN printf '%s\n' \
