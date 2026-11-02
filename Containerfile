@@ -192,11 +192,9 @@ RUN systemctl enable gdm.service && \
 
 
 # ============================================================
-# CLEANUP (LEAVE THIS HERE)
+# SAFE CLEANUP (Clears caches without destroying Flatpaks)
 # ============================================================
-
-RUN rm -rf /var && \
-    mkdir -p /var/tmp 
+RUN rm -rf /var/cache/dnf/* /var/log/* /var/tmp/*
 
 
 # ============================================================
