@@ -33,6 +33,10 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     gnome-extensions-app \
     nautilus \
     totem \
+    # GNOME core apps
+    gnome-text-editor \
+    baobab \
+    loupe \
     # Terminal and shell
     ghostty \
     fish \
@@ -145,6 +149,7 @@ RUN printf '%s\n' 'com.mitchellh.ghostty.desktop' > /etc/xdg/xdg-terminals.list
 # Fail the build early if the Ghostty desktop file is not where we expect
 RUN ls /usr/share/applications | grep -i ghostty
 
+# ============================================================
 # LAZYVIM STARTER CONFIGURATION
 # ============================================================
 
@@ -153,19 +158,24 @@ RUN git clone https://github.com/LazyVim/starter /etc/skel/.config/nvim && \
     # Remove the .git folder so users can track their own config changes later if desired
     rm -rf /etc/skel/.config/nvim/.git
 
+# Pre-install LazyVim plugins into the skel so new users don't wait on first launch
+RUN XDG_CONFIG_HOME=/etc/skel/.config \
+    XDG_DATA_HOME=/etc/skel/.local/share \
+    XDG_STATE_HOME=/etc/skel/.local/state \
+    XDG_CACHE_HOME=/etc/skel/.cache \
+    nvim --headless "+Lazy! sync" +qa || true
 
 # ============================================================
 # DESKTOP ENTRIES
 # ============================================================
 
-# Manual First-Boot Setup Launcher (Runs inside Ghostty with sudo password prompt)
+# Manual first-boot setup launcher (runs inside Ghostty, asks for sudo password)
 RUN printf '%s\n' \
     '[Desktop Entry]' \
     'Name=Complete Setup' \
     'GenericName=System Setup' \
     'Comment=Manually run Homebrew and Flatpak first-boot installation scripts' \
-    'Exec=ghostty -e bash -c "echo \"=== Running Homebrew Setup ===\"; sudo /bootstrap/install-brew.sh; echo \"=== Running Flatpak Setup ===\"; sudo /bootstrap/install-flatpaks.sh; echo \"\nSetup complete! Press Enter to close.\"; read"' \
-    'Categories=System'
+    'Exec=ghostty -e bash -c "echo \"=== Running Homebrew Setup ===\"; sudo /bootstrap/install-brew.sh; echo \"=== Running Flatpak Setup ===\"; sudo /bootstrap/install-flatpaks.sh; echo; echo \"Setup complete! Press Enter to close.\"; read"' \
     'Terminal=false' \
     'Type=Application' \
     'Categories=System;Settings;' \
@@ -186,8 +196,7 @@ RUN printf '%s\n' \
     'StartupNotify=true' \
     > /usr/share/applications/nvim.desktop
 
-# Decky Loader installer (Runs inside Ghostty)
-
+# Decky Loader installer (runs inside Ghostty)
 RUN printf '%s\n' \
     '[Desktop Entry]' \
     'Name=Install Decky Loader' \
@@ -199,7 +208,7 @@ RUN printf '%s\n' \
     'Categories=System;' \
     > /usr/share/applications/install-decky.desktop
 
-# Bold Brew menu entry (shipped in the image; the binary arrives at first boot)
+# Bold Brew menu entry (shipped in the image; the binary arrives after Complete Setup)
 RUN printf '%s\n' \
     '[Desktop Entry]' \
     'Name=Bold Brew' \
@@ -263,7 +272,7 @@ RUN exts=$(ls /usr/share/gnome-shell/extensions | sed "s/.*/'&'/" | paste -sd,) 
     dconf update
 
 # ============================================================
-# FIRST-BOOT: HOMEBREW + BOLD BREW (root systemd oneshot)
+# SETUP SCRIPT: HOMEBREW + BOLD BREW (run from Complete Setup)
 # ============================================================
 
 RUN mkdir -p /bootstrap
@@ -296,24 +305,8 @@ RUN printf '%s\n' \
     > /bootstrap/install-brew.sh && \
     chmod +x /bootstrap/install-brew.sh
 
-RUN printf '%s\n' \
-    '[Unit]' \
-    'Description=Install Homebrew and Bold Brew (first boot)' \
-    'After=network-online.target' \
-    'Wants=network-online.target' \
-    'ConditionPathExists=!/home/linuxbrew/.linuxbrew' \
-    '' \
-    '[Service]' \
-    'Type=oneshot' \
-    'ExecStart=/bootstrap/install-brew.sh' \
-    'TimeoutStartSec=infinity' \
-    '' \
-    '[Install]' \
-    'WantedBy=multi-user.target' \
-    > /etc/systemd/system/install-brew.service
-
 # ============================================================
-# FIRST-BOOT: FLATPAKS (root systemd oneshot)
+# SETUP SCRIPT: FLATPAKS (run from Complete Setup)
 # ============================================================
 
 RUN printf '%s\n' \
@@ -321,29 +314,10 @@ RUN printf '%s\n' \
     'set -euo pipefail' \
     'exec > >(tee -a /var/log/install-flatpaks.log) 2>&1' \
     'flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo' \
-    'flatpak install --system --assumeyes flathub org.localsend.localsend_app io.github.swordpuffin.rewaita com.mattjakeman.ExtensionManager io.github.flattool.Warehouse io.ente.auth com.github.vladimiry.ElectronMail io.github.kolunmi.Bazaar com.github.tchx84.Flatseal it.mijorus.gearlever io.freetubeapp.FreeTube org.signal.Signal io.github.Foldex.AdwSteamGtk page.codeberg.libre_menu_editor.LibreMenuEditor com.github.iwalton3.jellyfin-media-player io.github.ilya_zlobintsev.LACT net.jami.Jami page.tesk.Refine ' \
+    'flatpak install --system --assumeyes flathub org.localsend.localsend_app io.github.swordpuffin.rewaita com.mattjakeman.ExtensionManager io.github.flattool.Warehouse io.ente.auth com.github.vladimiry.ElectronMail io.github.kolunmi.Bazaar com.github.tchx84.Flatseal it.mijorus.gearlever io.freetubeapp.FreeTube org.signal.Signal io.github.Foldex.AdwSteamGtk page.codeberg.libre_menu_editor.LibreMenuEditor org.jellyfin.JellyfinDesktop io.github.ilya_zlobintsev.LACT net.jami.Jami page.tesk.Refine' \
     'flatpak install --system --assumeyes https://flatpak.unom.io/io.unom.punktfunk.flatpakref' \
     > /bootstrap/install-flatpaks.sh && \
     chmod +x /bootstrap/install-flatpaks.sh
-
-RUN printf '%s\n' \
-    '[Unit]' \
-    'Description=Install default Flatpaks (first boot)' \
-    'After=network-online.target' \
-    'Wants=network-online.target' \
-    'ConditionPathExists=!/var/lib/flatpaks-installed' \
-    '' \
-    '[Service]' \
-    'Type=oneshot' \
-    'ExecStart=/bootstrap/install-flatpaks.sh' \
-    'ExecStartPost=/usr/bin/touch /var/lib/flatpaks-installed' \
-    'TimeoutStartSec=infinity' \
-    '' \
-    '[Install]' \
-    'WantedBy=multi-user.target' \
-    > /etc/systemd/system/install-flatpaks.service
-
-RUN systemctl enable install-brew.service install-flatpaks.service
 
 # ============================================================
 # DEFAULT SHELL & BOOT TARGET
@@ -356,11 +330,9 @@ RUN sed -i 's|^SHELL=.*|SHELL=/usr/bin/fish|' /etc/default/useradd && \
 RUN systemctl enable gdm.service && \
     systemctl set-default graphical.target
 
-#============================================================
-#CLEANUP (LEAVE THIS HERE)
-#============================================================
+# ============================================================
+# CLEANUP (LEAVE THIS HERE)
+# ============================================================
 
 RUN rm -rf /var/ && \
-mkdir -p /var/tmp /var/log /var/lib /var
-
-
+    mkdir -p /var/tmp /var/log /var/lib /var
