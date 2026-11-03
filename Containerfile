@@ -200,7 +200,8 @@ RUN printf '%s\n' \
     'Name=Complete Setup' \
     'GenericName=System Setup' \
     'Comment=Manually run Homebrew and Flatpak first-boot installation scripts' \
-    'Exec=ghostty -e bash -c "echo \"=== Running Homebrew Setup ===\"; sudo /bootstrap/install-brew.sh; echo \"=== Running Flatpak Setup ===\"; sudo /bootstrap/install-flatpaks.sh; echo; echo \"Setup complete! Press Enter to close.\"; read"' \
+    'Exec=ghostty -e /bootstrap/complete-setup.sh' \
+    'Icon=system-software-install' \
     'Terminal=false' \
     'Type=Application' \
     'Categories=System;Settings;' \
@@ -302,7 +303,7 @@ RUN exts=$(ls /usr/share/gnome-shell/extensions | sed "s/.*/'&'/" | paste -sd,) 
 
 RUN mkdir -p /bootstrap
 
-# Part that runs as the unprivileged linuxbrew user
+# Part that runs as the unprivileged user who started Complete Setup
 RUN printf '%s\n' \
     '#!/bin/bash' \
     'set -euo pipefail' \
@@ -315,18 +316,20 @@ RUN printf '%s\n' \
     'brew install bbrew' \
     > /bootstrap/brew-as-user.sh
 
-# Part that runs as root
+# Part that runs as root (via sudo): Homebrew ends up owned by the user who ran it
 RUN printf '%s\n' \
     '#!/bin/bash' \
     'set -euo pipefail' \
     'exec > >(tee -a /var/log/install-brew.log) 2>&1' \
-    'if [ -d /home/linuxbrew/.linuxbrew ]; then exit 0; fi' \
-    'id linuxbrew &>/dev/null || useradd -m -s /bin/bash linuxbrew' \
-    'mkdir -p /home/linuxbrew/bin' \
+    'USER_NAME="${SUDO_USER:-}"' \
+    'if [ -z "$USER_NAME" ] || [ "$USER_NAME" = root ]; then echo "Run this with sudo from your normal user account."; exit 1; fi' \
+    'GROUP_NAME="$(id -gn "$USER_NAME")"' \
+    'mkdir -p /home/linuxbrew/bin /home/linuxbrew/.linuxbrew' \
     'printf "#!/bin/bash\nexec \"\$@\"\n" > /home/linuxbrew/bin/sudo' \
     'chmod +x /home/linuxbrew/bin/sudo' \
-    'chown -R linuxbrew:linuxbrew /home/linuxbrew' \
-    'su - linuxbrew -c "bash /bootstrap/brew-as-user.sh"' \
+    'chown -R "$USER_NAME:$GROUP_NAME" /home/linuxbrew' \
+    'if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then echo "Homebrew already installed; ownership set to $USER_NAME."; exit 0; fi' \
+    'su - "$USER_NAME" -c "bash /bootstrap/brew-as-user.sh"' \
     > /bootstrap/install-brew.sh && \
     chmod +x /bootstrap/install-brew.sh
 
@@ -343,6 +346,19 @@ RUN printf '%s\n' \
     'flatpak install --system --assumeyes https://flatpak.unom.io/io.unom.punktfunk.flatpakref' \
     > /bootstrap/install-flatpaks.sh && \
     chmod +x /bootstrap/install-flatpaks.sh
+
+# Wrapper launched by the Complete Setup desktop entry
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'echo "=== Running Homebrew Setup ==="' \
+    'sudo /bootstrap/install-brew.sh' \
+    'echo "=== Running Flatpak Setup ==="' \
+    'sudo /bootstrap/install-flatpaks.sh' \
+    'echo' \
+    'echo "Setup complete! Press Enter to close."' \
+    'read -r _' \
+    > /bootstrap/complete-setup.sh && \
+    chmod +x /bootstrap/complete-setup.sh
 
 # ============================================================
 # DEFAULT SHELL & BOOT TARGET
