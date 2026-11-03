@@ -165,11 +165,12 @@ RUN printf '%s\n' \
     'GenericName=System Setup' \
     'Comment=Manually run Homebrew and Flatpak first-boot installation scripts' \
     'Exec=ghostty -e bash -c "echo \"=== Running Homebrew Setup ===\"; sudo /bootstrap/install-brew.sh; echo \"=== Running Flatpak Setup ===\"; sudo /bootstrap/install-flatpaks.sh; echo \"\nSetup complete! Press Enter to close.\"; read"' \
+    'Categories=System'
     'Terminal=false' \
     'Type=Application' \
     'Categories=System;Settings;' \
     'StartupNotify=true' \
-    > /usr/share/applications/complete-setup.desktop
+    > /usr/share/applications/completesetup.desktop
 
 # Neovim launcher (runs inside Ghostty)
 RUN printf '%s\n' \
