@@ -141,13 +141,38 @@ RUN dnf -y --setopt=install_weak_deps=False install \
 
 # Plain config: Ghostty opens your shell (fish), not nvim
 RUN mkdir -p /etc/skel/.config/ghostty && \
-    printf '%s\n' 'shell-integration = fish' > /etc/skel/.config/ghostty/config
+    printf '%s\n' 'command = /usr/bin/fish' 'shell-integration = fish' > /etc/skel/.config/ghostty/config
 
 # xdg-terminal-exec list (used by newer apps/portals)
 RUN printf '%s\n' 'com.mitchellh.ghostty.desktop' > /etc/xdg/xdg-terminals.list
 
 # Fail the build early if the Ghostty desktop file is not where we expect
 RUN ls /usr/share/applications | grep -i ghostty
+
+# ============================================================
+# FISH (oh-my-posh prompt + Homebrew)
+# System-wide files in /etc/fish/conf.d apply to every user, including
+# ones created before this image, and load before ~/.config/fish/config.fish
+# so users can still override them.
+# ============================================================
+
+# Ship the if_tea theme inside the image (no network needed at shell start)
+RUN mkdir -p /usr/share/oh-my-posh/themes && \
+    curl -fsSL https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/if_tea.omp.json \
+        -o /usr/share/oh-my-posh/themes/if_tea.omp.json
+
+RUN mkdir -p /etc/fish/conf.d && \
+    printf '%s\n' \
+        'if status is-interactive; and command -q oh-my-posh' \
+        '    oh-my-posh init fish --config /usr/share/oh-my-posh/themes/if_tea.omp.json | source' \
+        'end' \
+        > /etc/fish/conf.d/10-oh-my-posh.fish && \
+    printf '%s\n' \
+        '# Checked on every shell start, so Homebrew is picked up as soon as Complete Setup has installed it' \
+        'if test -x /home/linuxbrew/.linuxbrew/bin/brew' \
+        '    /home/linuxbrew/.linuxbrew/bin/brew shellenv fish | source' \
+        'end' \
+        > /etc/fish/conf.d/20-homebrew.fish
 
 # ============================================================
 # LAZYVIM STARTER CONFIGURATION
