@@ -91,7 +91,6 @@ RUN dnf -y --setopt=install_weak_deps=False install \
     glycin-thumbnailer \
     gnome-backgrounds \
     gnome-browser-connector \
-    gnome-characters \
     gnome-clocks \
     gnome-color-manager \
     gnome-disk-utility \
@@ -175,22 +174,6 @@ RUN mkdir -p /etc/fish/conf.d && \
         > /etc/fish/conf.d/20-homebrew.fish
 
 # ============================================================
-# LAZYVIM STARTER CONFIGURATION
-# ============================================================
-
-# Clone the LazyVim starter template into /etc/skel so every new user gets it
-RUN git clone https://github.com/LazyVim/starter /etc/skel/.config/nvim && \
-    # Remove the .git folder so users can track their own config changes later if desired
-    rm -rf /etc/skel/.config/nvim/.git
-
-# Pre-install LazyVim plugins into the skel so new users don't wait on first launch
-RUN XDG_CONFIG_HOME=/etc/skel/.config \
-    XDG_DATA_HOME=/etc/skel/.local/share \
-    XDG_STATE_HOME=/etc/skel/.local/state \
-    XDG_CACHE_HOME=/etc/skel/.cache \
-    nvim --headless "+Lazy! sync" +qa || true
-
-# ============================================================
 # DESKTOP ENTRIES
 # ============================================================
 
@@ -199,7 +182,7 @@ RUN printf '%s\n' \
     '[Desktop Entry]' \
     'Name=Complete Setup' \
     'GenericName=System Setup' \
-    'Comment=Manually run Homebrew and Flatpak first-boot installation scripts' \
+    'Comment=Install Homebrew, Flatpaks and LazyVim, then switch to the fish shell' \
     'Exec=ghostty -e /bootstrap/complete-setup.sh' \
     'Icon=system-software-install' \
     'Terminal=false' \
@@ -214,6 +197,7 @@ RUN printf '%s\n' \
     'Name=Neovim' \
     'GenericName=Text Editor' \
     'Comment=Edit text files in Ghostty' \
+    'Icon=nvim' \
     'Exec=ghostty -e nvim %F' \
     'Terminal=false' \
     'Type=Application' \
@@ -228,6 +212,7 @@ RUN printf '%s\n' \
     'Name=Install Decky Loader' \
     'GenericName=Plugin Loader' \
     'Comment=Install the official Decky plugin loader' \
+    'Icon=applications-games' \
     'Exec=ghostty -e bash -c "curl -L https://github.com/SteamDeckHomebrew/decky-installer/releases/latest/download/install_release.sh | bash; echo Press Enter to close; read"' \
     'Terminal=false' \
     'Type=Application' \
@@ -240,6 +225,7 @@ RUN printf '%s\n' \
     'Name=Bold Brew' \
     'GenericName=Package Manager TUI' \
     'Comment=Modern Terminal UI for managing Homebrew packages' \
+    'Icon=package-x-generic' \
     'Exec=ghostty -e /home/linuxbrew/.linuxbrew/bin/bbrew' \
     'Terminal=false' \
     'Type=Application' \
@@ -274,6 +260,13 @@ RUN set -eux; \
     test -n "$url"; \
     wget -q -O /tmp/otiling.zip "$url"; \
     install_ext /tmp/otiling.zip; \
+    # Wallpaper Slideshow (extensions.gnome.org #6281): no Fedora package found, so fetch the zip built for this GNOME Shell version
+    shellver=$(rpm -q --qf '%{VERSION}' gnome-shell | cut -d. -f1); \
+    info=$(curl -fsSL "https://extensions.gnome.org/extension-info/?pk=6281&shell_version=$shellver"); \
+    path=$(printf '%s' "$info" | grep -o '"download_url": *"[^"]*"' | head -n1 | cut -d'"' -f4); \
+    test -n "$path"; \
+    wget -q -O /tmp/wpslideshow.zip "https://extensions.gnome.org$path"; \
+    install_ext /tmp/wpslideshow.zip; \
     rm -f /tmp/*.zip; \
     echo "Installed extensions:"; ls "$EXT"
 
@@ -342,18 +335,59 @@ RUN printf '%s\n' \
     'set -euo pipefail' \
     'exec > >(tee -a /var/log/install-flatpaks.log) 2>&1' \
     'flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo' \
-    'flatpak install --system --assumeyes flathub org.localsend.localsend_app io.github.swordpuffin.rewaita com.mattjakeman.ExtensionManager io.github.flattool.Warehouse io.ente.auth com.github.vladimiry.ElectronMail io.github.kolunmi.Bazaar com.github.tchx84.Flatseal it.mijorus.gearlever io.freetubeapp.FreeTube org.signal.Signal io.github.Foldex.AdwSteamGtk page.codeberg.libre_menu_editor.LibreMenuEditor org.jellyfin.JellyfinDesktop io.github.ilya_zlobintsev.LACT net.jami.Jami page.tesk.Refine' \
+    'flatpak install --system --assumeyes flathub org.localsend.localsend_app io.github.swordpuffin.rewaita com.mattjakeman.ExtensionManager io.github.flattool.Warehouse io.ente.auth com.github.vladimiry.ElectronMail io.github.kolunmi.Bazaar com.github.tchx84.Flatseal it.mijorus.gearlever io.freetubeapp.FreeTube org.signal.Signal io.github.Foldex.AdwSteamGtk page.codeberg.libre_menu_editor.LibreMenuEditor org.jellyfin.JellyfinDesktop io.github.ilya_zlobintsev.LACT net.jami.Jami page.tesk.Refine org.gnome.Characters org.gnome.font-viewer' \
     'flatpak install --system --assumeyes https://flatpak.unom.io/io.unom.punktfunk.flatpakref' \
     > /bootstrap/install-flatpaks.sh && \
     chmod +x /bootstrap/install-flatpaks.sh
 
-# Wrapper launched by the Complete Setup desktop entry
+# ============================================================
+# SETUP SCRIPT: LAZYVIM (runs as your user, from Complete Setup)
+# ============================================================
+
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'set -euo pipefail' \
+    'if [ -n "$(ls -A "$HOME/.config/nvim" 2>/dev/null)" ]; then' \
+    '    echo "Existing Neovim config found in ~/.config/nvim, leaving it alone."' \
+    '    exit 0' \
+    'fi' \
+    'git clone https://github.com/LazyVim/starter "$HOME/.config/nvim"' \
+    'rm -rf "$HOME/.config/nvim/.git"' \
+    'nvim --headless "+Lazy! sync" +qa || true' \
+    'echo "LazyVim installed."' \
+    > /bootstrap/install-lazyvim.sh && \
+    chmod +x /bootstrap/install-lazyvim.sh
+
+# ============================================================
+# SETUP SCRIPT: SWITCH LOGIN SHELL TO FISH (runs as your user)
+# ============================================================
+
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'set -euo pipefail' \
+    'if [ "$(getent passwd "$(id -un)" | cut -d: -f7)" = /usr/bin/fish ]; then' \
+    '    echo "Already using fish."' \
+    '    exit 0' \
+    'fi' \
+    'chsh -s /usr/bin/fish' \
+    'echo "Login shell changed to fish. Log out and back in to apply it."' \
+    > /bootstrap/set-fish-shell.sh && \
+    chmod +x /bootstrap/set-fish-shell.sh
+
+# ============================================================
+# COMPLETE SETUP WRAPPER (launched by the Complete Setup desktop entry)
+# ============================================================
+
 RUN printf '%s\n' \
     '#!/bin/bash' \
     'echo "=== Running Homebrew Setup ==="' \
     'sudo /bootstrap/install-brew.sh' \
     'echo "=== Running Flatpak Setup ==="' \
     'sudo /bootstrap/install-flatpaks.sh' \
+    'echo "=== Setting up LazyVim ==="' \
+    '/bootstrap/install-lazyvim.sh' \
+    'echo "=== Switching login shell to fish ==="' \
+    '/bootstrap/set-fish-shell.sh' \
     'echo' \
     'echo "Setup complete! Press Enter to close."' \
     'read -r _' \
