@@ -3,6 +3,7 @@
 hi i love anatase os and this is my attempt to create a version of it with my favorite desktop and a few usefull extra apps nothing crazy be gentel this is my first time using github
 as for additions i added zen browser for those who dislike the very idea of chromium , coolercontrol for those on desktop and or using an aio , brew for installing more cli tools, fish because it ts my favourite shell ,bazar because gnome software is not great ,ghostty because its my favorite terminal emulator and mission center for system monitoring .I also added some very usefull gnome extensions but nothing is preconfigured customize by youreself and enjoy. If you like gnome and wish to help feel free to report bugs and contribute and also contact me im open to sugestions 
 Update i think its close to beeing redy for others to use i realized i cant install flatpacks and brew during build so i created a complete install icon on the desktop just run that and it will be complete, also added the things i use daily some as system apps some as flatpack enjoy and big thanks to anatase and all the awesome creators of foss software
+update: its ready for testing dont forget to run complete setup after switching and install decky if you want have fun
 
 # Custom Image Template
 
