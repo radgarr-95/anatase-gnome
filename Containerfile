@@ -251,7 +251,17 @@ RUN set -eux; \
         if [ -d "$EXT/$uuid/schemas" ] && [ ! -f "$EXT/$uuid/schemas/gschemas.compiled" ]; then \
             glib-compile-schemas "$EXT/$uuid/schemas"; \
         fi; \
+        echo "installed $uuid: $(tr -d ' \n' < "$EXT/$uuid/metadata.json" | grep -o '"shell-version":\[[^]]*\]' || echo 'no shell-version field')"; \
         rm -rf "$tmp"; \
+    }; \
+    install_ego() { \
+        shellver=$(rpm -q --qf '%{VERSION}' gnome-shell | cut -d. -f1); \
+        echo "GNOME Shell major version: $shellver"; \
+        info=$(curl -fsSL "https://extensions.gnome.org/extension-info/?pk=$1&shell_version=$shellver"); \
+        path=$(printf '%s' "$info" | grep -o '"download_url": *"[^"]*"' | head -n1 | cut -d'"' -f4); \
+        test -n "$path"; \
+        wget -q -O "/tmp/ego-$1.zip" "https://extensions.gnome.org$path"; \
+        install_ext "/tmp/ego-$1.zip"; \
     }; \
     wget -q -O /tmp/bmw.zip "https://github.com/Schneegans/Burn-My-Windows/releases/latest/download/burn-my-windows@schneegans.github.com.zip"; \
     install_ext /tmp/bmw.zip; \
@@ -260,13 +270,10 @@ RUN set -eux; \
     test -n "$url"; \
     wget -q -O /tmp/otiling.zip "$url"; \
     install_ext /tmp/otiling.zip; \
-    # Wallpaper Slideshow (extensions.gnome.org #6281): no Fedora package found, so fetch the zip built for this GNOME Shell version
-    shellver=$(rpm -q --qf '%{VERSION}' gnome-shell | cut -d. -f1); \
-    info=$(curl -fsSL "https://extensions.gnome.org/extension-info/?pk=6281&shell_version=$shellver"); \
-    path=$(printf '%s' "$info" | grep -o '"download_url": *"[^"]*"' | head -n1 | cut -d'"' -f4); \
-    test -n "$path"; \
-    wget -q -O /tmp/wpslideshow.zip "https://extensions.gnome.org$path"; \
-    install_ext /tmp/wpslideshow.zip; \
+    # From extensions.gnome.org (by id): 6281 Wallpaper Slideshow, 10372 System Monitor, 8102 TouchUp
+    install_ego 6281; \
+    install_ego 10372; \
+    install_ego 8102; \
     rm -f /tmp/*.zip; \
     echo "Installed extensions:"; ls "$EXT"
 
