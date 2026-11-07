@@ -219,6 +219,19 @@ RUN printf '%s\n' \
     'Categories=System;' \
     > /usr/share/applications/install-decky.desktop
 
+# Punktfunk server (for using the OS as a headless gaming server); runs inside Ghostty
+RUN printf '%s\n' \
+    '[Desktop Entry]' \
+    'Name=Install Punktfunk Server' \
+    'GenericName=Game Streaming Server' \
+    'Comment=Install the punktfunk server system extension (headless gaming server use)' \
+    'Icon=network-server' \
+    'Exec=ghostty -e /bootstrap/install-punktfunk-sysext.sh --pause' \
+    'Terminal=false' \
+    'Type=Application' \
+    'Categories=System;' \
+    > /usr/share/applications/install-punktfunk-server.desktop
+
 # Bold Brew menu entry (shipped in the image; the binary arrives after Complete Setup)
 RUN printf '%s\n' \
     '[Desktop Entry]' \
@@ -330,7 +343,7 @@ RUN printf '%s\n' \
     'set -euo pipefail' \
     'exec > >(tee -a /var/log/install-flatpaks.log) 2>&1' \
     'flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo' \
-    'flatpak install --system --assumeyes flathub org.localsend.localsend_app io.github.swordpuffin.rewaita com.mattjakeman.ExtensionManager io.github.flattool.Warehouse io.ente.auth com.github.vladimiry.ElectronMail io.github.kolunmi.Bazaar com.github.tchx84.Flatseal it.mijorus.gearlever io.freetubeapp.FreeTube org.signal.Signal io.github.Foldex.AdwSteamGtk page.codeberg.libre_menu_editor.LibreMenuEditor org.jellyfin.JellyfinDesktop io.github.ilya_zlobintsev.LACT net.jami.Jami page.tesk.Refine org.gnome.Characters org.gnome.font-viewer' \
+    'flatpak install --system --assumeyes flathub org.localsend.localsend_app io.github.swordpuffin.rewaita com.mattjakeman.ExtensionManager io.github.flattool.Warehouse io.ente.auth com.github.vladimiry.ElectronMail io.github.kolunmi.Bazaar com.github.tchx84.Flatseal it.mijorus.gearlever io.freetubeapp.FreeTube org.signal.Signal io.github.Foldex.AdwSteamGtk page.codeberg.libre_menu_editor.LibreMenuEditor org.jellyfin.JellyfinDesktop io.github.ilya_zlobintsev.LACT net.jami.Jami page.tesk.Refine org.gnome.Characters org.gnome.font-viewer io.github.flattool.Ignition' \
     'flatpak install --system --assumeyes https://flatpak.unom.io/io.unom.punktfunk.flatpakref' \
     > /bootstrap/install-flatpaks.sh && \
     chmod +x /bootstrap/install-flatpaks.sh
@@ -409,6 +422,27 @@ RUN printf '%s\n' \
     'echo "Extensions installed. Log out and back in to load them."' \
     > /bootstrap/install-extensions.sh && \
     chmod +x /bootstrap/install-extensions.sh
+
+# ============================================================
+# OPTIONAL: PUNKTFUNK SERVER (systemd sysext) for headless gaming servers
+# Not part of Complete Setup. Run it from the "Install Punktfunk Server"
+# menu entry, or over SSH with:  /bootstrap/install-punktfunk-sysext.sh
+# ============================================================
+
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'tmp=$(mktemp -d)' \
+    'cd "$tmp"' \
+    'if curl -fsSLO https://git.unom.io/unom/punktfunk/raw/branch/main/packaging/bazzite/punktfunk-sysext.sh && sudo bash punktfunk-sysext.sh install; then' \
+    '    echo "Punktfunk server installed."' \
+    'else' \
+    '    echo "Punktfunk server install failed."' \
+    'fi' \
+    'cd /' \
+    'rm -rf "$tmp"' \
+    'if [ "${1:-}" = "--pause" ]; then echo; echo "Press Enter to close."; read -r _; fi' \
+    > /bootstrap/install-punktfunk-sysext.sh && \
+    chmod +x /bootstrap/install-punktfunk-sysext.sh
 
 # ============================================================
 # COMPLETE SETUP WRAPPER (launched by the Complete Setup desktop entry)
