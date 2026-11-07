@@ -251,17 +251,9 @@ RUN set -eux; \
         if [ -d "$EXT/$uuid/schemas" ] && [ ! -f "$EXT/$uuid/schemas/gschemas.compiled" ]; then \
             glib-compile-schemas "$EXT/$uuid/schemas"; \
         fi; \
+        chmod -R u+rwX,go+rX,go-w "$EXT/$uuid"; \
         echo "installed $uuid: $(tr -d ' \n' < "$EXT/$uuid/metadata.json" | grep -o '"shell-version":\[[^]]*\]' || echo 'no shell-version field')"; \
         rm -rf "$tmp"; \
-    }; \
-    install_ego() { \
-        shellver=$(rpm -q --qf '%{VERSION}' gnome-shell | cut -d. -f1); \
-        echo "GNOME Shell major version: $shellver"; \
-        info=$(curl -fsSL "https://extensions.gnome.org/extension-info/?pk=$1&shell_version=$shellver"); \
-        path=$(printf '%s' "$info" | grep -o '"download_url": *"[^"]*"' | head -n1 | cut -d'"' -f4); \
-        test -n "$path"; \
-        wget -q -O "/tmp/ego-$1.zip" "https://extensions.gnome.org$path"; \
-        install_ext "/tmp/ego-$1.zip"; \
     }; \
     wget -q -O /tmp/bmw.zip "https://github.com/Schneegans/Burn-My-Windows/releases/latest/download/burn-my-windows@schneegans.github.com.zip"; \
     install_ext /tmp/bmw.zip; \
@@ -270,12 +262,8 @@ RUN set -eux; \
     test -n "$url"; \
     wget -q -O /tmp/otiling.zip "$url"; \
     install_ext /tmp/otiling.zip; \
-    # From extensions.gnome.org (by id): 6281 Wallpaper Slideshow, 10372 System Monitor, 8102 TouchUp
-    install_ego 6281; \
-    install_ego 10372; \
-    install_ego 8102; \
     rm -f /tmp/*.zip; \
-    echo "Installed extensions:"; ls "$EXT"
+    echo "Installed extensions:"; ls -l "$EXT"
 
 # ============================================================
 # DCONF DEFAULTS (extensions enabled + Ghostty default terminal)
@@ -382,6 +370,47 @@ RUN printf '%s\n' \
     chmod +x /bootstrap/set-fish-shell.sh
 
 # ============================================================
+# SETUP SCRIPT: GNOME EXTENSIONS FROM extensions.gnome.org (runs as your user)
+# 6281 Wallpaper Slideshow, 10372 System Monitor, 8102 TouchUp
+# Installs to ~/.local/share/gnome-shell/extensions and adds them to the
+# enabled list; they load after the next log out / log in.
+# ============================================================
+
+RUN printf '%s\n' \
+    '#!/bin/bash' \
+    'set -euo pipefail' \
+    'q=$(printf "\047")' \
+    'ver=$(gnome-shell --version)' \
+    'ver=${ver##* }' \
+    'shellver=${ver%%.*}' \
+    'echo "GNOME Shell major version: $shellver"' \
+    'tmp=$(mktemp -d)' \
+    'for pk in 6281 10372 8102; do' \
+    '    info=$(curl -fsSL "https://extensions.gnome.org/extension-info/?pk=$pk&shell_version=$shellver")' \
+    '    path=$(printf "%s" "$info" | grep -o "\"download_url\": *\"[^\"]*\"" | head -n1 | cut -d"\"" -f4)' \
+    '    if [ -z "$path" ]; then echo "No build of extension $pk for GNOME Shell $shellver, skipping."; continue; fi' \
+    '    curl -fsSL -o "$tmp/$pk.zip" "https://extensions.gnome.org$path"' \
+    '    uuid=$(unzip -p "$tmp/$pk.zip" metadata.json | sed -n "s/.*\"uuid\"[^\"]*\"\([^\"]*\)\".*/\1/p" | head -n1)' \
+    '    test -n "$uuid"' \
+    '    dest="$HOME/.local/share/gnome-shell/extensions/$uuid"' \
+    '    mkdir -p "$dest"' \
+    '    unzip -oq "$tmp/$pk.zip" -d "$dest"' \
+    '    if [ -d "$dest/schemas" ] && [ ! -f "$dest/schemas/gschemas.compiled" ]; then glib-compile-schemas "$dest/schemas"; fi' \
+    '    cur=$(gsettings get org.gnome.shell enabled-extensions)' \
+    '    cur=${cur#@as }' \
+    '    case "$cur" in' \
+    '        *"$q$uuid$q"*) ;;' \
+    '        "[]") gsettings set org.gnome.shell enabled-extensions "[$q$uuid$q]" ;;' \
+    '        *) gsettings set org.gnome.shell enabled-extensions "${cur%]}, $q$uuid$q]" ;;' \
+    '    esac' \
+    '    echo "Installed $uuid (supports: $(tr -d " \n" < "$dest/metadata.json" | grep -o "\"shell-version\":\[[^]]*\]" || echo unknown))"' \
+    'done' \
+    'rm -rf "$tmp"' \
+    'echo "Extensions installed. Log out and back in to load them."' \
+    > /bootstrap/install-extensions.sh && \
+    chmod +x /bootstrap/install-extensions.sh
+
+# ============================================================
 # COMPLETE SETUP WRAPPER (launched by the Complete Setup desktop entry)
 # ============================================================
 
@@ -391,12 +420,14 @@ RUN printf '%s\n' \
     'sudo /bootstrap/install-brew.sh' \
     'echo "=== Running Flatpak Setup ==="' \
     'sudo /bootstrap/install-flatpaks.sh' \
+    'echo "=== Installing GNOME extensions ==="' \
+    '/bootstrap/install-extensions.sh' \
     'echo "=== Setting up LazyVim ==="' \
     '/bootstrap/install-lazyvim.sh' \
     'echo "=== Switching login shell to fish ==="' \
     '/bootstrap/set-fish-shell.sh' \
     'echo' \
-    'echo "Setup complete! Press Enter to close."' \
+    'echo "Setup complete! Log out and back in for extensions and the shell change. Press Enter to close."' \
     'read -r _' \
     > /bootstrap/complete-setup.sh && \
     chmod +x /bootstrap/complete-setup.sh
